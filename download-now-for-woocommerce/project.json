@@ -1,0 +1,57 @@
+{
+    "name": "Free Downloads WooCommerce Pro",
+    "version": "3.5.8.3",
+    "required_php": "7.4.0",
+    "platform": "WordPress",
+    "sources": {
+        "autoload": {
+            "SOM\\FreeDownloads": "Includes",
+            "SOM\\FreeDownloads\\Lib": "Lib"
+        },
+        "files": [
+            "Includes/Legacy/somdn-functions.php",
+            "Includes/Legacy/somdn-file-functions.php",
+            "Includes/Legacy/somdn-downloader.php",
+            "Includes/Legacy/somdn-download-page.php",
+            "Includes/Legacy/somdn-plugin-settings.php",
+            "Includes/Legacy/somdn-compatibility.php",
+            "Includes/Legacy/somdn-meta.php",
+            "Includes/Legacy/somdn-doc-viewer-functions.php",
+            "Includes/Legacy/somdn-shortcodes.php",
+            "somdn-base-loader.php",
+            "pro/somdn-pro-loader.php"
+        ]
+    },
+    "requirements" : [
+        {
+            "type_id"   : "wp_plugin",
+            "type_name" : "WordPress Plugin",
+            "name"      : "WooCommerce",
+            "url"       : "https://en-gb.wordpress.org/plugins/woocommerce/",
+            "value"     : "woocommerce\/woocommerce.php"
+        },
+        {
+            "type_id"   : "php_min_ver",
+            "type_name" : "Minimum PHP Version",
+            "name"      : "Version 7.4.0",
+            "url"       : "https://www.php.net/manual/en/migration74.php",
+            "value"     : "7.4.0"
+        }
+    ],
+    "pybuild": {
+        "exclude_files" : [
+            ".gitattributes",
+            ".gitignore"
+        ],
+        "exclude_extensions" : [
+            ".zip"
+        ],
+        "exclude_folders" : [
+            ".git",
+            ".github",
+            ".vscode",
+            "Docs",
+            "tests"
+        ]
+    }
+}
