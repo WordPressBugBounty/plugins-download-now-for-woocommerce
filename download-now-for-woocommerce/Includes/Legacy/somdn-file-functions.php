@@ -465,54 +465,52 @@ function somdn_duplicate_pdf($file_path) {
  * @return string Filepath/URL for the file
  */
 function somdn_create_zip($files = array(), $destination = '', $overwrite = false, $distill_subdirectories = true) {
-  //if the zip file already exists and overwrite is false, return false
+  // if the zip file already exists and overwrite is false, return false
   if (file_exists($destination) && !$overwrite) { return false; }
-  //vars
+  // vars
   $valid_files = array();
-  //if files were passed in...
+  // if files were passed in...
   if (is_array($files)) {
-    //cycle through each file
+    // cycle through each file
     foreach ($files as $file) {
-      //make sure the file exists
+      // make sure the file exists
       if (file_exists($file)) {
         $valid_files[] = $file;
       }
     }
   }
-  //if we have good files...
+  // if we have good files...
   if (count($valid_files)) {
-    //create the archive
+    // create the archive
     $zip = new ZipArchive();
-    if ($zip->open($destination,$overwrite ? ZIPARCHIVE::OVERWRITE : ZIPARCHIVE::CREATE) !== true) {
+    if ($zip->open($destination, $overwrite ? ZIPARCHIVE::OVERWRITE : ZIPARCHIVE::CREATE) !== true) {
       return false;
     }
-    //add the files
+    // add the files
     foreach ($valid_files as $file) {
-        if ($distill_subdirectories) {
-            $zip->addFile($file, basename($file));
-        } else {
-            $zip->addFile($file, $file);
-        }
+      if ($distill_subdirectories) {
+        $zip->addFile($file, basename($file));
+      } else {
+        $zip->addFile($file, $file);
+      }
     }
-    //debug
-    //echo 'The zip archive contains ',$zip->numFiles,' files with a status of ',$zip->status;
-    //print_r($zip);
-    
-    //$newfilepath = $zip['filename'];
+    // debug
+    // echo 'The zip archive contains ', $zip->numFiles, ' files with a status of ', $zip->status;
+    // print_r($zip);
+
+    // $newfilepath = $zip['filename'];
     $newfilepath = $zip->filename;
-    
-    //close the zip -- done!
+
+    // close the zip -- done!
     $zip->close();
-    
-    //check to make sure the file exists
+
+    // check to make sure the file exists
     if (file_exists($destination)) {
       return $newfilepath;
     } else {
       return false;
     }
-  }
-  else
-  {
+  } else {
     return false;
   }
 }

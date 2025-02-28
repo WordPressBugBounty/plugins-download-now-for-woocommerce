@@ -3,8 +3,8 @@ Contributors: wpenhanced, squareonemedia
 Author URI: https://wpenhanced.com
 Plugin URL: https://wordpress.org/plugins/download-now-for-woocommerce/
 Requires at Least: 4.4
-Tested up to: 6.5.2
-Requires PHP: 7.4
+Tested up to: 6.7.2
+Requires PHP: 7.4.0
 Stable tag: trunk
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -155,6 +155,11 @@ Below is a list of explicitly supported plugins:
 12. Download tracking period report displaying and exporting (Pro Edition)
 
 == Changelog ==
+= 3.5.9 - 28th February 2025 =
+[NEW] Added settings to rename the file in a zip file when you enable "Force Zip File" in single download (Settings > Single Files > Force Zip File) - you can rename the file to the product name and append attributes if you want too
+[MOD] Updated tested version numbers
+[FIX] Notice when user has to be logged in was not showing when using the shortcode to display the button
+
 = 3.5.8.3 - 6th February 2024 =
 [FIX] - WooCommerce PDF Watermark Compatibility Opacity was not working
 [FIX] - PHP Warning: Attempt to read property “id” on string somdn-woo-functions.php on line 80

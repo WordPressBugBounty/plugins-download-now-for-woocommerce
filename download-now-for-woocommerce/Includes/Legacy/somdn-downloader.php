@@ -175,8 +175,7 @@ function somdn_download_multi_checked($product_id)
     return;
   }
 
-  $file_path = somdn_zip_all_download_files($selected_file_paths, $title, $product_id);
-
+  $file_path = somdn_zip_all_download_files($selected_file_paths, $title, $product_id, $attribute_string='', $zip_file_rename=false);
   somdn_do_download($file_path, $product_id);
 }
 
@@ -225,31 +224,66 @@ function somdn_download_multi_checked_original($product_id)
     return;  
   }
 
-  $file_path = somdn_zip_all_download_files($checked_downloads, $title, $product_id);
+  $file_path = somdn_zip_all_download_files($checked_downloads, $title, $product_id, $attribute_string='', $zip_file_rename=false);
 
   somdn_do_download($file_path, $product_id);
 }
 
 function somdn_download_all_files($product_id = '')
 {
+
+  $singleoptions = get_option('somdn_single_settings');
+  $zip_file_rename = (isset($singleoptions['somdn_single_zip_rename']) && $singleoptions['somdn_single_zip_rename']) ? true : false;
+  $zip_file_rename_attributes = (isset($singleoptions['somdn_single_zip_rename_attributes']) && $singleoptions['somdn_single_zip_rename_attributes']) ? true : false;
+
+
   if (!$product_id) {
     $product_id = intval($_POST['somdn_product']);
   }
 
-  $product = somdn_get_product($product_id);
-  $title = preg_replace('/[^a-z\d]+/i', '-', get_the_title($product_id));
+  $attribute_string = '';
+
+  if ($zip_file_rename) {
+    $product = wc_get_product($product_id); // Use WooCommerce function to get the product
+
+    if ($zip_file_rename_attributes) {
+      // Get the product attributes
+      $attributes = $product->get_attributes();
+      foreach ($attributes as $attribute_name => $attribute) {
+        if ($attribute->is_taxonomy()) {
+          $terms = wc_get_product_terms($product_id, $attribute_name, array('fields' => 'names'));
+          $attribute_string .= '_' . sanitize_title(wc_attribute_label($attribute_name)) . '-' . sanitize_title(implode('-', $terms));
+        } else {
+          $options = $attribute->get_options();
+          $attribute_string .= '_' . sanitize_title(wc_attribute_label($attribute_name)) . '-' . sanitize_title(implode('-', $options));
+        }
+      }
+    }
+
+    $title = preg_replace('/[^a-z\d]+/i', '-', get_the_title($product_id));
+    // Construct the zip file name without attributes
+    $zip_file_name = $title;
+    
+  } else {
+    $product = somdn_get_product($product_id);
+
+    $title = preg_replace('/[^a-z\d]+/i', '-', get_the_title($product_id));
+    // Construct the zip file name without attributes
+    $zip_file_name = $title;
+  }
 
   $downloads = somdn_get_files($product);
   $downloads_count = count($downloads);
 
   $download_files = somdn_get_file_paths($product, $downloads);
 
-  $file_path = somdn_zip_all_download_files($download_files, $title, $product_id);
+
+  $file_path = somdn_zip_all_download_files($download_files, $zip_file_name, $product_id, $attribute_string, $zip_file_rename);
 
   somdn_do_download($file_path, $product_id);
 }
 
-function somdn_zip_all_download_files($downloads, $title, $product_id = '')
+function somdn_zip_all_download_files($downloads, $title, $product_id = '', $attribute_string, $zip_file_rename)
 {
   somdn_create_temp_uploads_folders();
   $parent = somdn_get_upload_folder_parent_path();
@@ -261,19 +295,38 @@ function somdn_zip_all_download_files($downloads, $title, $product_id = '')
   $code1 = $now->format("ms");
   $code2 = $now->format("u");
   $downloadID = get_current_user_id() . $code1 . $code2;
-  
-  $zip_path = $zip_path . '/' . $title . '-' . $downloadID . '.zip';
+
+  // Construct the zip file name without attributes
+  $zip_file_name = $title . '-' . $downloadID . '.zip';
+  $zip_path = $zip_path . '/' . $zip_file_name;
 
   $files = [];
+  $temp_files = []; // Store temporary file paths to clean up later
 
-  foreach ($downloads as $download) {
+  foreach ($downloads as $index => $download) {
     $path = parse_url($download, PHP_URL_PATH);
     $abs_filepath = $_SERVER['DOCUMENT_ROOT'] . $path;
 
-    if (file_exists($abs_filepath)) {
-      array_push($files, preg_replace('/(\/+)/','/', $abs_filepath));
+    if (file_exists($abs_filepath)) { 
+      if ($zip_file_rename) {
+        $extension = pathinfo($abs_filepath, PATHINFO_EXTENSION);
+        $new_name = $parent . '/' . $title . $attribute_string . '_file-' . ($index + 1) . '.' . $extension;
+        copy($abs_filepath, $new_name);
+        $temp_files[] = $new_name;
+        array_push($files, preg_replace('/(\/+)/', '/', $new_name));
+      } else {
+        array_push($files, preg_replace('/(\/+)/','/', $abs_filepath));
+      }
     } elseif (file_exists($path)) {
-      array_push($files, $path);
+      if ($zip_file_rename) {
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $new_name = $parent . '/' . $title . $attribute_string . '_file-' . ($index + 1) . '.' . $extension;
+        copy($path, $new_name);
+        $temp_files[] = $new_name;
+        array_push($files, $new_name);
+      } else {
+        array_push($files, $path);
+      }
     }
   }
 
@@ -297,9 +350,72 @@ function somdn_zip_all_download_files($downloads, $title, $product_id = '')
     somdn_write_log($log_entry);
   }
 
-  $fileurl = $upload_dir['baseurl'] . '/free-downloads-files/temp-files/' . $title . '-' . $downloadID . '.zip';
+  if ($temp_files) {
+    // Clean up temporary files
+    foreach ($temp_files as $temp_file) {
+      unlink($temp_file);
+    }
+  }
+
+  $fileurl = $upload_dir['baseurl'] . '/free-downloads-files/temp-files/' . $zip_file_name;
 
   $file_path = $fileurl;
 
   return $file_path;
 }
+
+
+// function somdn_zip_all_download_files($downloads, $title, $product_id = '')
+// {
+//   somdn_create_temp_uploads_folders();
+//   $parent = somdn_get_upload_folder_parent_path();
+//   $zip_path = somdn_get_upload_folder_zip_path();
+
+//   $upload_dir = wp_upload_dir();
+
+//   $now = DateTime::createFromFormat('U.u', microtime(true));
+//   $code1 = $now->format("ms");
+//   $code2 = $now->format("u");
+//   $downloadID = get_current_user_id() . $code1 . $code2;
+  
+//   $zip_path = $zip_path . '/' . $title . '-' . $downloadID . '.zip';
+
+//   $files = [];
+
+//   foreach ($downloads as $download) {
+//     $path = parse_url($download, PHP_URL_PATH);
+//     $abs_filepath = $_SERVER['DOCUMENT_ROOT'] . $path;
+
+//     if (file_exists($abs_filepath)) {
+//       array_push($files, preg_replace('/(\/+)/','/', $abs_filepath));
+//     } elseif (file_exists($path)) {
+//       array_push($files, $path);
+//     }
+//   }
+
+//   if (empty($files)) {
+//     $log_entry = 'No files were zipped for download. Check the files are stored locally and you are not using external URLs.';
+//     if (!empty($product_id)) {
+//       $log_entry .= ' Product ID ' . $product_id . '.';
+//     }
+//     somdn_write_log($log_entry);
+//     somdn_wp_error('<strong>ERROR</strong>: no files were found to download');
+//   }
+
+//   $files_to_zip = $files;
+
+//   $result = somdn_create_zip($files_to_zip, $zip_path);
+//   if ($result == false) {
+//     $log_entry = 'Unable to create ZIP file for download. To use this feature your server needs ZipArchive to be installed.';
+//     if (!empty($product_id)) {
+//       $log_entry .= ' Product ID ' . $product_id . '.';
+//     }
+//     somdn_write_log($log_entry);
+//   }
+
+//   $fileurl = $upload_dir['baseurl'] . '/free-downloads-files/temp-files/' . $title . '-' . $downloadID . '.zip';
+
+//   $file_path = $fileurl;
+
+//   return $file_path;
+// }

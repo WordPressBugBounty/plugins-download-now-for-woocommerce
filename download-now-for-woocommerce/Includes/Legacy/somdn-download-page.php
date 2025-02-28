@@ -18,6 +18,7 @@ add_action('somdn_archive_product_page', 'somdn_product_page');
 
 function somdn_product_page($args = array())
 {
+  echo '<span style="display:none;">somdn_product_page</span>';
   $defaults = array(
     'archive' => false,
     'product' => '',
@@ -203,7 +204,10 @@ function somdn_product_page($args = array())
 
   } else {
 
+    echo '<span style="display:none;">yes here</span>';
+
     if ( class_exists('WC_Bundles') && $product->get_type() == 'bundle' && is_archive()) {
+      echo '<span style="display:none;">Archive here</span>';
       $buttoncss = (isset($genoptions['somdn_button_css']) && $genoptions['somdn_button_css']) ? esc_attr($genoptions['somdn_button_css']) : '' ;
       $buttonclass = (isset($genoptions['somdn_button_class']) && $genoptions['somdn_button_class']) ? esc_attr($genoptions['somdn_button_class']) : '' ;
       ?>

@@ -223,6 +223,28 @@ function somdn_settings_init() {
     'somdn_single_settings_section'
   );
 
+  // only show the following settings if the force zip option is enabled
+  $options = get_option('somdn_single_settings');
+  $value = isset($options['somdn_single_force_zip']) ? $options['somdn_single_force_zip'] : '' ;
+
+  if ($value) {
+    add_settings_field(
+      'somdn_single_zip_rename',
+      __('Rename ZIP', 'somdn-pro'),
+      'somdn_single_zip_rename_render',
+      'somdn_single_settings',
+      'somdn_single_settings_section'
+    );
+
+    add_settings_field(
+      'somdn_single_zip_rename_attributes',
+      __('ZIP Attributes', 'somdn-pro'),
+      'somdn_single_zip_rename_attributes_render',
+      'somdn_single_settings',
+      'somdn_single_settings_section'
+    );
+  }
+
   register_setting('somdn_multi_settings', 'somdn_multi_settings');
 
   add_settings_section(
@@ -912,6 +934,42 @@ function somdn_single_force_zip_render() {
   Force ZIP creation for single files
   </label>
   <p class="description">Will always create a ZIP file for downloads with single files.</p>
+  <?php
+
+}
+
+// setting to rename file in zip to be product name
+function somdn_single_zip_rename_render() {
+
+  $options = get_option('somdn_single_settings'); ?>
+  
+  <label for="somdn_single_settings[somdn_single_zip_rename]">
+  <input type="checkbox" name="somdn_single_settings[somdn_single_zip_rename]" id="somdn_single_settings[somdn_single_zip_rename]"
+  <?php
+    $checked = isset($options['somdn_single_zip_rename']) ? checked($options['somdn_single_zip_rename'], true) : '' ;
+  ?>
+    value="1">
+  Rename file in ZIP to product name
+  </label>
+  <p class="description">Will rename the file in the ZIP to the product name.</p>
+  <?php
+
+}
+
+// append attributes to the renamed file
+function somdn_single_zip_rename_attributes_render() {
+
+  $options = get_option('somdn_single_settings'); ?>
+  
+  <label for="somdn_single_settings[somdn_single_zip_rename_attributes]">
+  <input type="checkbox" name="somdn_single_settings[somdn_single_zip_rename_attributes]" id="somdn_single_settings[somdn_single_zip_rename_attributes]"
+  <?php
+    $checked = isset($options['somdn_single_zip_rename_attributes']) ? checked($options['somdn_single_zip_rename_attributes'], true) : '' ;
+  ?>
+    value="1">
+  Append attributes to renamed file
+  </label>
+  <p class="description">Will append the product attributes to the file name in the ZIP.</p>
   <?php
 
 }
