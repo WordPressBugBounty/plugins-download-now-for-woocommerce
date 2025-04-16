@@ -283,8 +283,7 @@ function somdn_download_all_files($product_id = '')
   somdn_do_download($file_path, $product_id);
 }
 
-function somdn_zip_all_download_files($downloads, $title, $product_id = '', $attribute_string, $zip_file_rename)
-{
+function somdn_zip_all_download_files($downloads, $title, $product_id = '', $attribute_string = '', $zip_file_rename = false) {
   somdn_create_temp_uploads_folders();
   $parent = somdn_get_upload_folder_parent_path();
   $zip_path = somdn_get_upload_folder_zip_path();
@@ -363,59 +362,3 @@ function somdn_zip_all_download_files($downloads, $title, $product_id = '', $att
 
   return $file_path;
 }
-
-
-// function somdn_zip_all_download_files($downloads, $title, $product_id = '')
-// {
-//   somdn_create_temp_uploads_folders();
-//   $parent = somdn_get_upload_folder_parent_path();
-//   $zip_path = somdn_get_upload_folder_zip_path();
-
-//   $upload_dir = wp_upload_dir();
-
-//   $now = DateTime::createFromFormat('U.u', microtime(true));
-//   $code1 = $now->format("ms");
-//   $code2 = $now->format("u");
-//   $downloadID = get_current_user_id() . $code1 . $code2;
-  
-//   $zip_path = $zip_path . '/' . $title . '-' . $downloadID . '.zip';
-
-//   $files = [];
-
-//   foreach ($downloads as $download) {
-//     $path = parse_url($download, PHP_URL_PATH);
-//     $abs_filepath = $_SERVER['DOCUMENT_ROOT'] . $path;
-
-//     if (file_exists($abs_filepath)) {
-//       array_push($files, preg_replace('/(\/+)/','/', $abs_filepath));
-//     } elseif (file_exists($path)) {
-//       array_push($files, $path);
-//     }
-//   }
-
-//   if (empty($files)) {
-//     $log_entry = 'No files were zipped for download. Check the files are stored locally and you are not using external URLs.';
-//     if (!empty($product_id)) {
-//       $log_entry .= ' Product ID ' . $product_id . '.';
-//     }
-//     somdn_write_log($log_entry);
-//     somdn_wp_error('<strong>ERROR</strong>: no files were found to download');
-//   }
-
-//   $files_to_zip = $files;
-
-//   $result = somdn_create_zip($files_to_zip, $zip_path);
-//   if ($result == false) {
-//     $log_entry = 'Unable to create ZIP file for download. To use this feature your server needs ZipArchive to be installed.';
-//     if (!empty($product_id)) {
-//       $log_entry .= ' Product ID ' . $product_id . '.';
-//     }
-//     somdn_write_log($log_entry);
-//   }
-
-//   $fileurl = $upload_dir['baseurl'] . '/free-downloads-files/temp-files/' . $title . '-' . $downloadID . '.zip';
-
-//   $file_path = $fileurl;
-
-//   return $file_path;
-// }
