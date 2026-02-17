@@ -1,25 +1,27 @@
 {
     "name": "Free Downloads WooCommerce Pro",
-    "version": "3.5.9",
+    "version": "3.6.2",
     "required_php": "7.4.0",
     "platform": "WordPress",
     "sources": {
         "autoload": {
-            "SOM\\FreeDownloads": "Includes",
+            "SOM\\FreeDownloads": "includes",
             "SOM\\FreeDownloads\\Lib": "Lib"
         },
         "files": [
-            "Includes/Legacy/somdn-functions.php",
-            "Includes/Legacy/somdn-file-functions.php",
-            "Includes/Legacy/somdn-downloader.php",
-            "Includes/Legacy/somdn-download-page.php",
-            "Includes/Legacy/somdn-plugin-settings.php",
-            "Includes/Legacy/somdn-compatibility.php",
-            "Includes/Legacy/somdn-meta.php",
-            "Includes/Legacy/somdn-doc-viewer-functions.php",
-            "Includes/Legacy/somdn-shortcodes.php",
+            "includes/Legacy/somdn-functions.php",
+            "includes/Legacy/somdn-file-functions.php",
+            "includes/Legacy/somdn-downloader.php",
+            "includes/Legacy/somdn-download-page.php",
+            "includes/Legacy/somdn-plugin-settings.php",
+            "includes/Legacy/somdn-compatibility.php",
+            "includes/Legacy/somdn-meta.php",
+            "includes/Legacy/somdn-doc-viewer-functions.php",
+            "includes/Legacy/somdn-shortcodes.php",
             "somdn-base-loader.php",
-            "pro/somdn-pro-loader.php"
+            "pro/somdn-pro-loader.php",
+            "includes/settings/organization/wp-enhanced/class-common-settings.php",
+            "includes/settings/specific/settings.php"
         ]
     },
     "requirements" : [

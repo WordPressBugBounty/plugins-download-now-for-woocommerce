@@ -37,6 +37,12 @@ add_filter('woocommerce_product_get_sale_price', 'somdn_is_download_owned_price'
 add_filter('woocommerce_get_price_html', 'somdn_download_owned_price_html', 99, 2);
 add_filter('somdn_is_product_valid_quickview', 'somdn_is_product_valid_quickview_basic', 10, 3);
 
+$gen_options = get_option('somdn_gen_settings');
+if (!empty($gen_options['somdn_enable_download_sorting'])) {
+	add_filter('woocommerce_catalog_orderby', 'somdn_add_download_count_sorting');
+	add_filter('woocommerce_get_catalog_ordering_args', 'somdn_apply_download_count_sorting');
+}
+
 /**
  * WooCommerce compatibility filters
  */
@@ -63,6 +69,23 @@ add_action('plugins_loaded', 'somdn_woo_archive_import_include');
 add_action('somdn_default_woo_archive', 'somdn_do_default_woo_archive');
 add_action('somdn_shop_download_button', 'somdn_do_shop_download_button', 10, 3);
 add_action('somdn_shop_free_if_logged_in', 'somdn_shop_free_if_logged_in_button', 10, 3);
+
+/**
+ * Product sorting functions
+ */
+function somdn_add_download_count_sorting($sortby) {
+	$sortby['most_free_downloads'] = __('Sort by free downloads', 'somdn-pro');
+	return $sortby;
+}
+
+function somdn_apply_download_count_sorting($args) {
+	if (isset($_GET['orderby']) && $_GET['orderby'] === 'most_free_downloads') {
+		$args['orderby'] = 'meta_value_num';
+		$args['order'] = 'DESC';
+		$args['meta_key'] = 'somdn_dlcount';
+	}
+	return $args;
+}
 
 /**
  * Load up WooCommerce files

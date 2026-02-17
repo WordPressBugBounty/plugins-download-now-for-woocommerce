@@ -21,7 +21,8 @@ use const DIRECTORY_SEPARATOR as SEP;
 defined('ABSPATH') || exit;
 
 (function(){
-    $includes = 'Includes' . SEP;
+    $base = __DIR__ . SEP;
+    $includes = is_dir($base . 'Includes') ? $base . 'Includes' . SEP : $base . 'includes' . SEP;
 
     require_once $includes . 'Project.php';
     $project = new Project(__DIR__ . SEP . 'project.json', __DIR__);

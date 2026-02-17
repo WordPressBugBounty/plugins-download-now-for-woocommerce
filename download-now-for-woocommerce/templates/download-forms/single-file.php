@@ -29,10 +29,6 @@ defined('ABSPATH') || exit; ?>
             $buttontext = $pdf_default;
           }
 
-        } else {
-
-          $pdf_output = false;
-
         }
 
       }

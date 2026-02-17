@@ -3,9 +3,9 @@ Contributors: wpenhanced, squareonemedia
 Author URI: https://wpenhanced.com
 Plugin URL: https://wordpress.org/plugins/download-now-for-woocommerce/
 Requires at Least: 4.4
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4.0
-Stable tag: trunk
+Stable tag: 3.6.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: woocommerce, downloads, downloadable, free downloads, download now, download no checkout, download button, download now button, wordpress, e-commerce, ecommerce
@@ -155,6 +155,38 @@ Below is a list of explicitly supported plugins:
 12. Download tracking period report displaying and exporting (Pro Edition)
 
 == Changelog ==
+
+= 3.6.2 =
+[FIX] Bootstrap now finds plugin files whether the includes folder is named Includes or includes (fixes fatal error on some hosts and WordPress.org packaging)
+
+= 3.6.1 =
+[FIX] Plugin no longer causes a fatal error on activation or page load on some server configurations
+
+= 3.6.0 - 17/02/26 =
+[NEW] New Settings Framework to improve UX and development
+[NEW] Added product sorting by free download count option in WooCommerce shop pages
+[MOD] (Pro Edition) Stats page now shows a visual preview for free users with upgrade prompts
+[MOD] PDF viewer preserves original filename when opening in Google Docs viewer using unique temporary folders
+[MOD] (Pro Edition) Stats taken out of beta and renamed "Reports" with new interactive reporting with bar, table and line graphs
+[MOD] (Pro Edition) Stats export shows a notice when "Country based on IP" is selected and a progress modal during export
+[MOD] (Pro Edition) Download Reports date range is now remembered for the session and in the URL so reloading keeps your chosen range
+[FIX] "Download again text" setting was not working on archive pages
+[FIX] PDF viewer now correctly identifies local files and opens PDFs in Google Docs viewer instead of downloading directly
+[FIX] Corrected form submission for bundle products to properly support PDF viewer feature
+
+= 3.5.14 - 06/05/25 =
+[FIX] Removed download_token spam protection as was causing issues for some edge cases. Still have honeypot and time implementation
+
+= 3.5.13 - 5th May 2025 =
+[FIX] _load_textdomain_just_in_time was called incorrectly
+[FIX] Download not working when email delivery and Mailchimp sign up together
+
+= 3.5.12 - 16th April 2025 =
+[FIX] (Pro Edition) Downloads not working for email or redirect with recent spam filters 
+
+= 3.5.11 - 24/04/25 =
+[FIX] - Quick fix with spam token causing download to not work 
+
 = 3.5.10 - 16th April 2025 =
 [MOD] Added honeypot to the email capture form to reduce spam submissions.
 [MOD] Implemented time-based spam prevention by blocking form submissions made within 2 seconds of loading.

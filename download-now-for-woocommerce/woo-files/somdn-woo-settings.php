@@ -43,14 +43,23 @@ function somdn_settings_quickview_settings($active_section)
 
 add_action('admin_menu', 'somdn_main_admin_menu', 95);
 function somdn_main_admin_menu() {
+  // Register menu with redirect callback instead of old page
   add_submenu_page(
     'woocommerce',
     'Free Downloads',
     'Free Downloads',
     'manage_woocommerce',
     'download_now_dashboard',
-    'somdn_options_page'
+    'somdn_redirect_to_new_settings'  // Redirect callback
   );
+}
+
+/**
+ * Redirect old "Free Downloads" menu to new React settings page
+ */
+function somdn_redirect_to_new_settings() {
+  wp_safe_redirect(admin_url('admin.php?page=wp-enhanced#free-downloads-woocommerce'));
+  exit;
 }
 
 add_action('somdn_after_require_login_settings', 'somdn_woo_archive_setting', 10);
