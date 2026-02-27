@@ -113,9 +113,25 @@ final class DbUpdater
              ),
                 '3.1.5' => array(
                     array($this, 'somdn_plugin_update_to_3_1_5')
+             ),
+                '3.6.2' => array(
+                    array($this, 'somdn_plugin_update_to_3_6_2')
              )
          )
         );
+    }
+
+    /**
+     * Create postmeta index for performance (meta_key + meta_value lookups).
+     *
+     * @param array $update_args Update arguments.
+     * @return true
+     */
+    public function somdn_plugin_update_to_3_6_2( $update_args ) {
+        if ( function_exists( 'somdn_maybe_create_postmeta_index' ) ) {
+            somdn_maybe_create_postmeta_index();
+        }
+        return true;
     }
 
     public function run()

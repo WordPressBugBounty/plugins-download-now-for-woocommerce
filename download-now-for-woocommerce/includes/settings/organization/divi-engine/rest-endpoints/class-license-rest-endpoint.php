@@ -50,7 +50,7 @@ class DiviEngine_License_REST_Endpoints {
         if (empty($license_key) || empty($plugin_id)) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('License key is missing.', '__DE_SETTINGS_TD__')
+                'message' => __('License key is missing.', 'download-now-for-woocommerce')
             ));
         }
 
@@ -58,14 +58,14 @@ class DiviEngine_License_REST_Endpoints {
             $result = DiviEngine_License_REST_Endpoints::validate_remote_license($license_key, $plugin_id);
 
             if (!is_array($result)) {
-                throw new Exception(__('Unexpected response format.', '__DE_SETTINGS_TD__'));
+                throw new Exception(__('Unexpected response format.', 'download-now-for-woocommerce'));
             }
 
             return rest_ensure_response($result);
         } catch (Exception $e) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('An error occurred during license validation.', '__DE_SETTINGS_TD__')
+                'message' => __('An error occurred during license validation.', 'download-now-for-woocommerce')
             ));
         }
     }
@@ -86,7 +86,7 @@ class DiviEngine_License_REST_Endpoints {
         if (empty($license_key) || empty($plugin_id)) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('License key or plugin code is missing.', '__DE_SETTINGS_TD__')
+                'message' => __('License key or plugin code is missing.', 'download-now-for-woocommerce')
             ));
         }
 
@@ -103,7 +103,7 @@ class DiviEngine_License_REST_Endpoints {
         if (is_wp_error($data) || $data['response']['code'] != 200) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('Failed to connect to the license server.', '__DE_SETTINGS_TD__')
+                'message' => __('Failed to connect to the license server.', 'download-now-for-woocommerce')
             ));
         }
 
@@ -120,19 +120,19 @@ class DiviEngine_License_REST_Endpoints {
 
                 return rest_ensure_response(array(
                     'success' => true,
-                    'message' => __('License deactivated successfully.', '__DE_SETTINGS_TD__')
+                    'message' => __('License deactivated successfully.', 'download-now-for-woocommerce')
                 ));
             }
 
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => $response_block->message ?? __('License deactivation failed.', '__DE_SETTINGS_TD__')
+                'message' => $response_block->message ?? __('License deactivation failed.', 'download-now-for-woocommerce')
             ));
         }
 
         return rest_ensure_response(array(
             'success' => false,
-            'message' => __('Unexpected response from the license server.', '__DE_SETTINGS_TD__')
+            'message' => __('Unexpected response from the license server.', 'download-now-for-woocommerce')
         ));
     }
 
@@ -158,7 +158,7 @@ class DiviEngine_License_REST_Endpoints {
                     'licenseKey' => $masked_license,
                     'action' => 'Deactivate',
                     'href' => '#divi-engine-license-settings',
-                    'description' => esc_html__('Your license is active. You can deactivate it if needed.', '__DE_SETTINGS_TD__'),
+                    'description' => esc_html__('Your license is active. You can deactivate it if needed.', 'download-now-for-woocommerce'),
                     'plugin_id' => $plugin_id,
                 );
             } else {
@@ -169,7 +169,7 @@ class DiviEngine_License_REST_Endpoints {
                     'licenseKey' => '',
                     'action' => 'Validate',
                     'href' => '#divi-engine-license-settings',
-                    'description' => esc_html__('Keep your site updated and secure by entering your license key.', '__DE_SETTINGS_TD__'),
+                    'description' => esc_html__('Keep your site updated and secure by entering your license key.', 'download-now-for-woocommerce'),
                     'plugin_id' => $plugin_id,
                 );
             }
@@ -198,7 +198,7 @@ class DiviEngine_License_REST_Endpoints {
         if (is_wp_error($data) || empty($data['body'])) {
             return array(
                 'success' => false,
-                'message' => __('Failed to connect to license server.', '__DE_SETTINGS_TD__'),
+                'message' => __('Failed to connect to license server.', 'download-now-for-woocommerce'),
             );
         }
 
@@ -206,7 +206,7 @@ class DiviEngine_License_REST_Endpoints {
         if (!is_array($response_block)) {
             return array(
                 'success' => false,
-                'message' => __('Invalid response from license server.', '__DE_SETTINGS_TD__'),
+                'message' => __('Invalid response from license server.', 'download-now-for-woocommerce'),
             );
         }
 
@@ -224,14 +224,14 @@ class DiviEngine_License_REST_Endpoints {
 
             return array(
                 'success' => true,
-                'message' => __('License activated successfully.', '__DE_SETTINGS_TD__'),
+                'message' => __('License activated successfully.', 'download-now-for-woocommerce'),
                 'formatted_key' => $license_key,
             );
         }
 
         return array(
             'success' => false,
-            'message' => $last_response->message ?? __('License activation failed.', '__DE_SETTINGS_TD__'),
+            'message' => $last_response->message ?? __('License activation failed.', 'download-now-for-woocommerce'),
         );
     }
 

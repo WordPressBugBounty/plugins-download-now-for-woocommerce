@@ -379,7 +379,7 @@ function somdn_is_required_login_check($product, $product_id) {
   $required_login_check = true;
   // Get the plugin general settings
   $genoptions = get_option('somdn_gen_settings');
-  $require_login_setting = isset($genoptions['somdn_require_login']) ? true : false ;
+  $require_login_setting = !empty($genoptions['somdn_require_login']);
   if (!is_user_logged_in() && $require_login_setting) {
     $required_login_check = false;
   }

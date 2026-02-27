@@ -90,10 +90,10 @@ class DiviEngine_REST_Endpoints {
                 $result = array_merge($database_achievements, array_map(function ($plugin) use ($plugins) {
                     return [
                         'plugin' => $plugin,
-                        'name' => $plugins[$plugin] . esc_html__(' License Key', '__DE_SETTINGS_TD__'),
+                        'name' => $plugins[$plugin] . esc_html__(' License Key', 'download-now-for-woocommerce'),
                         'status' => 'Incomplete',
                         'href' => '/wp-admin/admin.php?page=divi-engine-settings#license',
-                        'description' => esc_html__('Enter your license key to activate updates and features.', '__DE_SETTINGS_TD__'),
+                        'description' => esc_html__('Enter your license key to activate updates and features.', 'download-now-for-woocommerce'),
                     ];
                 }, $license_achievements));
 

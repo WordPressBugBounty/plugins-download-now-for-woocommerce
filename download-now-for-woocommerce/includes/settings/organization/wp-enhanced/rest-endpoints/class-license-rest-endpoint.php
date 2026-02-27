@@ -27,12 +27,13 @@ class WPEnhanced_License_REST_Endpoints {
             'callback' => array($this, 'deactivate_license_key'),
             'permission_callback' => array($this, 'check_admin_permission'),
         ));
-        
+
         register_rest_route('wpe/v1', '/force-remove-license', array(
             'methods' => 'POST',
             'callback' => array($this, 'force_remove_license_key'),
             'permission_callback' => array($this, 'check_admin_permission'),
         ));
+
         register_rest_route('wpe/v1', '/get-licenses', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_missing_licenses'),
@@ -56,7 +57,7 @@ class WPEnhanced_License_REST_Endpoints {
         if (empty($license_key) || empty($plugin_id)) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('License key is missing.', '__DE_SETTINGS_TD__')
+                'message' => __('License key is missing.', 'download-now-for-woocommerce')
             ));
         }
 
@@ -64,14 +65,14 @@ class WPEnhanced_License_REST_Endpoints {
             $result = WPEnhanced_License_REST_Endpoints::validate_remote_license($license_key, $plugin_id, $plugin);
 
             if (!is_array($result)) {
-                throw new Exception(__('Unexpected response format.', '__DE_SETTINGS_TD__'));
+                throw new Exception(__('Unexpected response format.', 'download-now-for-woocommerce'));
             }
 
             return rest_ensure_response($result);
         } catch (Exception $e) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('An error occurred during license validation.', '__DE_SETTINGS_TD__')
+                'message' => __('An error occurred during license validation.', 'download-now-for-woocommerce')
             ));
         }
     }
@@ -90,7 +91,7 @@ class WPEnhanced_License_REST_Endpoints {
         if (empty($license_key) || empty($plugin_id)) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('License key or plugin code is missing.', '__DE_SETTINGS_TD__')
+                'message' => __('License key or plugin code is missing.', 'download-now-for-woocommerce')
             ));
         }
 
@@ -106,7 +107,7 @@ class WPEnhanced_License_REST_Endpoints {
         if (is_wp_error($response) || 200 !== wp_remote_retrieve_response_code($response)) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('Failed to connect to the license server.', '__DE_SETTINGS_TD__')
+                'message' => __('Failed to connect to the license server.', 'download-now-for-woocommerce')
             ));
         }
 
@@ -118,20 +119,20 @@ class WPEnhanced_License_REST_Endpoints {
 
             return rest_ensure_response(array(
                 'success' => true,
-                'message' => __('License deactivated successfully.', '__DE_SETTINGS_TD__')
+                'message' => __('License deactivated successfully.', 'download-now-for-woocommerce')
             ));
         }
 
         return rest_ensure_response(array(
             'success' => false,
-            'message' => __('License deactivation failed.', '__DE_SETTINGS_TD__')
+            'message' => __('License deactivation failed.', 'download-now-for-woocommerce')
         ));
     }
 
     /**
      * Force remove license key locally without server validation.
      * Useful when server is unreachable, license was already removed, or site was cloned.
-     * 
+     *
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
@@ -142,33 +143,25 @@ class WPEnhanced_License_REST_Endpoints {
         if (empty($plugin)) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('Plugin identifier is missing.', '__DE_SETTINGS_TD__')
+                'message' => __('Plugin identifier is missing.', 'download-now-for-woocommerce')
             ));
         }
 
         $licenses = get_option('wp_enhanced_licenses', array());
-        
-        // Check if license exists
+
         if (empty($licenses[$plugin])) {
             return rest_ensure_response(array(
                 'success' => false,
-                'message' => __('No license key found to remove.', '__DE_SETTINGS_TD__')
+                'message' => __('No license key found to remove.', 'download-now-for-woocommerce')
             ));
         }
 
-        // Remove license locally
         $licenses[$plugin] = '';
         update_option('wp_enhanced_licenses', $licenses);
 
-        // Also clear old format if it exists (for backward compatibility)
-        if ($plugin === 'free-downloads-woocommerce-pro') {
-            update_option('somdn_pro_license_key', '');
-            update_option('somdn_pro_license_status', '');
-        }
-
         return rest_ensure_response(array(
             'success' => true,
-            'message' => __('License key removed locally. You can now add a new license key.', '__DE_SETTINGS_TD__')
+            'message' => __('License key removed locally. You can now add a new license key.', 'download-now-for-woocommerce')
         ));
     }
 
@@ -195,7 +188,7 @@ class WPEnhanced_License_REST_Endpoints {
                     'licenseKey' => $masked_license,
                     'action' => 'Deactivate',
                     'href' => '#wp-enhanced-license-settings',
-                    'description' => esc_html__('Your license is active. You can deactivate it if needed.', '__DE_SETTINGS_TD__'),
+                    'description' => esc_html__('Your license is active. You can deactivate it if needed.', 'download-now-for-woocommerce'),
                     'plugin_id' => $plugin_id,
                 );
             } else {
@@ -206,7 +199,7 @@ class WPEnhanced_License_REST_Endpoints {
                     'licenseKey' => '',
                     'action' => 'Validate',
                     'href' => '#wp-enhanced-license-settings',
-                    'description' => esc_html__('Keep your site updated and secure by entering your license key.', '__DE_SETTINGS_TD__'),
+                    'description' => esc_html__('Keep your site updated and secure by entering your license key.', 'download-now-for-woocommerce'),
                     'plugin_id' => $plugin_id,
                 );
             }
@@ -232,7 +225,7 @@ class WPEnhanced_License_REST_Endpoints {
             if (is_wp_error($response)) {
                 $message = $response->get_error_message();
             } else {
-                $message = __('An error occurred, please try again.', '__DE_SETTINGS_TD__');
+                $message = __('An error occurred, please try again.', 'download-now-for-woocommerce');
             }
             return array(
                 'success' => false,
@@ -246,34 +239,34 @@ class WPEnhanced_License_REST_Endpoints {
             switch($license_data->error) {
                 case 'expired' :
                     $message = sprintf(
-                        __('Your license key expired on %s.', '__DE_SETTINGS_TD__'),
+                        __('Your license key expired on %s.', 'download-now-for-woocommerce'),
                         date_i18n(get_option('date_format'), strtotime($license_data->expires, current_time('timestamp')))
                     );
                     break;
 
                 case 'revoked' :
-                    $message = __('Your license key has been disabled.', '__DE_SETTINGS_TD__');
+                    $message = __('Your license key has been disabled.', 'download-now-for-woocommerce');
                     break;
 
                 case 'missing' :
-                    $message = __('Invalid license.', '__DE_SETTINGS_TD__');
+                    $message = __('Invalid license.', 'download-now-for-woocommerce');
                     break;
 
                 case 'invalid' :
                 case 'site_inactive' :
-                    $message = __('Your license is not active for this URL.', '__DE_SETTINGS_TD__');
+                    $message = __('Your license is not active for this URL.', 'download-now-for-woocommerce');
                     break;
 
                 case 'item_name_mismatch' :
-                    $message = __('This appears to be an invalid license key.', '__DE_SETTINGS_TD__');
+                    $message = __('This appears to be an invalid license key.', 'download-now-for-woocommerce');
                     break;
 
                 case 'no_activations_left':
-                    $message = __('Your license key has reached its activation limit.', '__DE_SETTINGS_TD__');
+                    $message = __('Your license key has reached its activation limit.', 'download-now-for-woocommerce');
                     break;
 
                 default :
-                    $message = __('An error occurred, please try again.', '__DE_SETTINGS_TD__');
+                    $message = __('An error occurred, please try again.', 'download-now-for-woocommerce');
                     break;
             }
 
@@ -291,7 +284,7 @@ class WPEnhanced_License_REST_Endpoints {
 
         return array(
             'success' => true,
-            'message' => __('License activated successfully.', '__DE_SETTINGS_TD__'),
+            'message' => __('License activated successfully.', 'download-now-for-woocommerce'),
             'formatted_key' => $license_key,
         );
     }

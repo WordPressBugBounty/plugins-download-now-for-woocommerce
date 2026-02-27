@@ -74,7 +74,7 @@ function somdn_product_page($args = array())
   $multioptions = get_option('somdn_multi_settings');
   $docoptions = get_option('somdn_docviewer_settings');
 
-  $requirelogin = isset($genoptions['somdn_require_login']) ? true : false ;
+  $requirelogin = !empty($genoptions['somdn_require_login']);
 
   $allowed_tags = somdn_get_allowed_html_tags();
 

@@ -162,6 +162,22 @@ function somdn_localize_pro_status_in_head() {
   // Addon sections: allow plugins (e.g. CRM addon) to inject a nav item + script.
   $addon_sections = apply_filters('somdn_settings_addon_sections', array());
 
+  // Newsletter subscription dropdown: same filter as legacy Tracking UI so addons (e.g. CRM) can add options.
+  $newsletter_subscribe_options = array(
+    array( 'label' => '— None —', 'value' => '0' ),
+  );
+  if ( $is_pro ) {
+    $sub_options = apply_filters( 'somdn_sub_options', array( 'manual' => 'Manual', 'mailchimp' => 'MailChimp' ) );
+    if ( is_array( $sub_options ) ) {
+      foreach ( $sub_options as $value => $label ) {
+        $newsletter_subscribe_options[] = array(
+          'label' => is_string( $label ) ? $label : (string) $label,
+          'value' => is_string( $value ) ? $value : (string) $value,
+        );
+      }
+    }
+  }
+
   $settings_data = wp_json_encode(array(
     'is_pro' => $is_pro,
     'has_memberships' => $has_memberships,
@@ -171,6 +187,7 @@ function somdn_localize_pro_status_in_head() {
     'export_url' => admin_url('admin-post.php?action=somdn_stats_export'),
     'export_nonce' => wp_create_nonce('somdn_stats_export'),
     'addon_sections' => $addon_sections,
+    'newsletter_subscribe_options' => $newsletter_subscribe_options,
   ));
 
   echo '<script id="somdn-settings-data">window.somdn_settings = ' . $settings_data . ';</script>' . "\n";

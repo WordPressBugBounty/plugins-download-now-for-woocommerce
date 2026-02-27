@@ -5,10 +5,10 @@ Plugin URL: https://wordpress.org/plugins/download-now-for-woocommerce/
 Requires at Least: 4.4
 Tested up to: 6.9
 Requires PHP: 7.4.0
-Stable tag: 3.6.2
+Stable tag: 3.6.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
-Tags: woocommerce, downloads, downloadable, free downloads, download now, download no checkout, download button, download now button, wordpress, e-commerce, ecommerce
+Tags: woocommerce, downloads, downloadable, free downloads, No Checkout
 
 Allow users to instantly download your free digital products without going through the checkout.
 
@@ -156,8 +156,21 @@ Below is a list of explicitly supported plugins:
 
 == Changelog ==
 
+= 3.6.3 - 27/02/26 =
+[NEW] (Pro Edition) Search box on My Account Free Downloads page so customers can find downloads by product name when using pagination
+[MOD] (Pro Edition) Plugin now creates a database index on activation to improve performance for meta lookups on high-volume installs
+[MOD] (Pro Edition) Reports stats queries now use date ranges instead of DATE() in filters so the database can use indexes; dashboard and chart load faster on large datasets
+[MOD] (Pro Edition) My Account Free Downloads page now shows 50 items per page with pagination, loads post data in one batch, and caches product lookups so users with large download histories no longer experience timeouts
+[FIX] (Pro Edition) Download buttons now remain visible on the My Account page for previously downloaded products when the download limit is reached
+[FIX] (Pro Edition) Users can now re-download previously downloaded products even after reaching their download limit
+[FIX] Bootstrap now finds plugin files whether the includes folder is named Includes or includes (fixes fatal error on some hosts and WordPress.org packaging)
+[FIX] "Only Show Button to Logged In Users" setting is now respected when turned off (fixes login message showing for guests when the option is disabled)
+[FIX] Plugin no longer causes a fatal error on activation or page load on some server configurations
+
 = 3.6.2 =
 [FIX] Bootstrap now finds plugin files whether the includes folder is named Includes or includes (fixes fatal error on some hosts and WordPress.org packaging)
+[FIX] "Only Show Button to Logged In Users" setting is now respected when turned off (fixes login message showing for guests when the option is disabled)
+[FIX] Plugin no longer causes a fatal error on activation or page load on some server configurations
 
 = 3.6.1 =
 [FIX] Plugin no longer causes a fatal error on activation or page load on some server configurations
@@ -170,6 +183,7 @@ Below is a list of explicitly supported plugins:
 [MOD] (Pro Edition) Stats taken out of beta and renamed "Reports" with new interactive reporting with bar, table and line graphs
 [MOD] (Pro Edition) Stats export shows a notice when "Country based on IP" is selected and a progress modal during export
 [MOD] (Pro Edition) Download Reports date range is now remembered for the session and in the URL so reloading keeps your chosen range
+[NEW] (Pro Edition) Reports: Recent Downloads can now be searched by customer email and filtered by product
 [FIX] "Download again text" setting was not working on archive pages
 [FIX] PDF viewer now correctly identifies local files and opens PDFs in Google Docs viewer instead of downloading directly
 [FIX] Corrected form submission for bundle products to properly support PDF viewer feature

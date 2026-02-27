@@ -83,6 +83,9 @@ final class Plugin extends AbstractSingletonPlugin
 
     public function somdnActivated(): void
     {
+        if ( function_exists( 'somdn_maybe_create_postmeta_index' ) ) {
+            somdn_maybe_create_postmeta_index();
+        }
         do_action('somdn_on_activate');
         do_action('somdn_pro_activated');
     }

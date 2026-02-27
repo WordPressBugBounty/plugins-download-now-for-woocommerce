@@ -83,49 +83,6 @@ if ( ! class_exists( 'DE_Settings_Plugin_Registry' ) ) {
 }
 
 /**
- * Plugin Registry for Settings Framework
- * 
- * Allows plugins to register themselves for the settings page.
- */
-if ( ! class_exists( 'DE_Settings_Plugin_Registry' ) ) {
-    
-    class DE_Settings_Plugin_Registry {
-        
-        /**
-         * Add a plugin to the registry
-         * 
-         * @param array $config Plugin configuration
-         *   - slug: (string) Unique plugin identifier
-         *   - label: (string) Display name for navigation
-         *   - script_url: (string) URL to the plugin's pages bundle JS
-         *   - version: (string) Plugin version for cache busting
-         *   - framework_version: (string) Version of framework this plugin ships with
-         */
-        public function add( $config ) {
-            global $de_registered_settings_plugins;
-            
-            if ( ! isset( $de_registered_settings_plugins ) ) {
-                $de_registered_settings_plugins = array();
-            }
-            
-            $slug = sanitize_key( $config['slug'] ?? '' );
-            if ( empty( $slug ) ) {
-                return;
-            }
-            
-            $de_registered_settings_plugins[ $slug ] = array(
-                'slug'              => $slug,
-                'label'             => sanitize_text_field( $config['label'] ?? $slug ),
-                'color'             => sanitize_hex_color( $config['color'] ?? '' ),
-                'script_url'        => esc_url( $config['script_url'] ?? '' ),
-                'version'           => sanitize_text_field( $config['version'] ?? '1.0.0' ),
-                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.0' ),
-            );
-        }
-    }
-}
-
-/**
  * Class Divi_Engine_Settings
  * 
  * Main settings framework class. Handles:
@@ -169,6 +126,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
             
             // Standard admin hooks
             add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
+            add_action( 'admin_menu', array( $this, 'rename_first_submenu_to_dashboard' ), 99 );
             add_action( 'admin_init', array( $this, 'register_settings' ) );
             
             // Enqueue scripts (priority 15 = after plugin registrations)
@@ -254,19 +212,50 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
 
         /**
          * Add settings page to the admin menu
+         * Only register the top-level menu once when multiple Divi Engine plugins are active (e.g. Ajax Filter + Form Builder).
          */
         public function add_settings_page() {
+            global $menu;
+
+            $menu_exists = false;
+            if ( is_array( $menu ) ) {
+                foreach ( $menu as $item ) {
+                    if ( isset( $item[2] ) && $item[2] === 'divi-engine' ) {
+                        $menu_exists = true;
+                        break;
+                    }
+                }
+            }
+
+            if ( $menu_exists ) {
+                return;
+            }
+
             $icon = DE_WPE_SETTINGS_URL . 'includes/settings/organization/divi-engine/images/dash-icon.svg';
-            
+
             add_menu_page(
-                __( 'Divi Engine Settings', '__DE_SETTINGS_TD__' ),
-                __( 'Divi Engine', '__DE_SETTINGS_TD__' ),
+                __( 'Divi Engine Settings', 'download-now-for-woocommerce' ),
+                __( 'Divi Engine', 'download-now-for-woocommerce' ),
                 'manage_options',
                 'divi-engine',
                 array( $this, 'settings_page_content' ),
                 $icon,
                 100
             );
+        }
+
+        /**
+         * Rename the first submenu item from "Divi Engine" to "Dashboard" and ensure it links to #dashboard.
+         */
+        public function rename_first_submenu_to_dashboard() {
+            global $submenu;
+
+            if ( ! isset( $submenu['divi-engine'][0] ) ) {
+                return;
+            }
+
+            // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+            $submenu['divi-engine'][0][0] = __( 'Dashboard', 'download-now-for-woocommerce' );
         }
 
         /**
@@ -376,6 +365,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
          * Add admin head style for menu icon
          */
         public function admin_head_style() {
+            $dashboard_url = admin_url( 'admin.php?page=divi-engine#dashboard' );
             echo '<style>
                 .toplevel_page_divi-engine img {
                     max-width: 16px;
@@ -392,6 +382,23 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                     left: 8px;
                 }
             </style>';
+            echo '<script>
+                (function() {
+                    var run = function() {
+                        var topLevel = document.querySelector("#adminmenu #toplevel_page_divi-engine");
+                        if (!topLevel) return;
+                        var firstLink = topLevel.querySelector(".wp-submenu li:first-child a");
+                        if (firstLink && firstLink.getAttribute("href").indexOf("page=divi-engine") !== -1) {
+                            firstLink.setAttribute("href", ' . wp_json_encode( $dashboard_url ) . ');
+                        }
+                    };
+                    if (document.readyState === "loading") {
+                        document.addEventListener("DOMContentLoaded", run);
+                    } else {
+                        run();
+                    }
+                })();
+            </script>';
         }
 
         /**

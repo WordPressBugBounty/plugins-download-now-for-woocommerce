@@ -1,6 +1,6 @@
 {
     "name": "Free Downloads WooCommerce Pro",
-    "version": "3.6.2",
+    "version": "3.6.3",
     "required_php": "7.4.0",
     "platform": "WordPress",
     "sources": {
@@ -9,6 +9,7 @@
             "SOM\\FreeDownloads\\Lib": "Lib"
         },
         "files": [
+            "includes/somdn-db-indexes.php",
             "includes/Legacy/somdn-functions.php",
             "includes/Legacy/somdn-file-functions.php",
             "includes/Legacy/somdn-downloader.php",

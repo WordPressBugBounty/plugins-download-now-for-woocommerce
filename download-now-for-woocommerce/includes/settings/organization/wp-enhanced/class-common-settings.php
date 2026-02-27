@@ -100,10 +100,7 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
          */
         public function __construct() {
             $this->framework_version = WPE_SETTINGS_FRAMEWORK_VERSION;
-            // Use plugin_dir_url to get the correct case-sensitive URL
-            // __FILE__ is in wp-enhanced/, dirname 2x goes to settings/
-            $settings_dir = dirname( dirname( __FILE__ ) );
-            $this->framework_url = plugin_dir_url( $settings_dir );
+            $this->framework_url = DE_WPE_SETTINGS_URL . 'includes/settings/';
             
             // Define legacy constants for backwards compatibility
             if ( ! defined( 'WPE_SETTINGS_PATH' ) ) {
@@ -126,6 +123,8 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
             add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ), 15 );
             
             add_action( 'admin_head', array( $this, 'admin_head_style' ) );
+
+            add_action( 'wp_ajax_wpe_settings_get_post_list', array( $this, 'ajax_get_post_list' ) );
             
 			// Load REST endpoints
 			require_once WPE_SETTINGS_PATH . 'rest-endpoints/class-settings-endpoint.php';
@@ -217,33 +216,17 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
          * Add settings page to the admin menu
          */
         public function admin_menu() {
-            global $submenu;
-            
-            // Use plugin_dir_url to get the correct case-sensitive URL
-            // __FILE__ is in wp-enhanced/, dirname 2x goes to settings/, then into organization/
-            $icon = plugin_dir_url( dirname( dirname( __FILE__ ) ) ) . 'organization/wp-enhanced/images/dash-icon.svg';
+            $icon = DE_WPE_SETTINGS_URL . 'includes/settings/organization/wp-enhanced/images/dash-icon.svg';
             
             add_menu_page(
-                __( 'WP Enhanced Settings', '__DE_SETTINGS_TD__' ),
-                __( 'WP Enhanced', '__DE_SETTINGS_TD__' ),
+                __( 'WP Enhanced Settings', 'download-now-for-woocommerce' ),
+                __( 'WP Enhanced', 'download-now-for-woocommerce' ),
                 'manage_options',
                 'wp-enhanced',
                 array( $this, 'admin_page' ),
                 $icon,
                 100
             );
-            
-            // Add Dashboard submenu at the top
-            if ( ! isset( $submenu['wp-enhanced'] ) ) {
-                $submenu['wp-enhanced'] = array();
-            }
-            
-            // Insert Dashboard as the first submenu item
-            array_unshift( $submenu['wp-enhanced'], array(
-                __( 'Dashboard', '__DE_SETTINGS_TD__' ),
-                'manage_options',
-                'admin.php?page=wp-enhanced#dashboard'
-            ) );
         }
 
         /**
@@ -341,6 +324,69 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
                 . 'window.diviEngineSettingsObject.typesenseConfigs = ' . wp_json_encode( $typesense_configs ) . ';',
                 'before'
             );
+
+            $post_list_fallback = array(
+                'url'    => admin_url( 'admin-ajax.php' ),
+                'action' => 'wpe_settings_get_post_list',
+                'nonce'  => wp_create_nonce( 'wpe_settings_post_list' ),
+            );
+            wp_add_inline_script(
+                'wpe-settings-core',
+                'window.wpeSettingsPostListFallback = ' . wp_json_encode( $post_list_fallback ) . ';',
+                'before'
+            );
+        }
+
+        /**
+         * AJAX handler: return pages or posts list for post-type-select dropdowns.
+         * Used by all plugins using the settings framework; one request per postType shared across fields.
+         */
+        public function ajax_get_post_list() {
+            check_ajax_referer( 'wpe_settings_post_list', 'nonce' );
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error( array( 'message' => __( 'Forbidden.', 'download-now-for-woocommerce' ) ), 403 );
+            }
+
+            $post_type = isset( $_GET['post_type'] ) ? sanitize_text_field( wp_unslash( $_GET['post_type'] ) ) : 'pages';
+            if ( $post_type === 'pages' ) {
+                $post_type = 'page';
+            } elseif ( $post_type === 'posts' ) {
+                $post_type = 'post';
+            } else {
+                $post_type = sanitize_key( $post_type );
+            }
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized
+            $page     = isset( $_GET['page'] ) ? absint( wp_unslash( $_GET['page'] ) ) : 1;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized
+            $per_page = isset( $_GET['per_page'] ) ? min( 100, max( 1, absint( wp_unslash( $_GET['per_page'] ) ) ) ) : 100;
+
+            $query = new WP_Query(
+                array(
+                    'post_type'      => $post_type,
+                    'post_status'    => 'publish',
+                    'posts_per_page' => $per_page,
+                    'paged'          => $page,
+                    'orderby'        => 'title',
+                    'order'          => 'ASC',
+                    'no_found_rows'  => false,
+                )
+            );
+
+            $total       = (int) $query->found_posts;
+            $total_pages = (int) $query->max_num_pages;
+            $items       = array();
+            foreach ( $query->posts as $post_obj ) {
+                $items[] = array(
+                    'id'    => $post_obj->ID,
+                    'title' => array(
+                        'rendered' => $post_obj->post_title,
+                    ),
+                );
+            }
+
+            header( 'X-WP-Total: ' . $total );
+            header( 'X-WP-TotalPages: ' . $total_pages );
+            wp_send_json_success( $items );
         }
         
         /**

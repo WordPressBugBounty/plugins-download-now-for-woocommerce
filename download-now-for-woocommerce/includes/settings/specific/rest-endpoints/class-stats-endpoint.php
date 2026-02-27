@@ -138,11 +138,34 @@ class Stats_Endpoint {
             'permission_callback' => array(__CLASS__, 'check_permissions'),
         ));
 
-        // Recent downloads
+        // Recent downloads (supports search by email, filter by product, user type, and date range)
         register_rest_route(self::NAMESPACE, '/stats/recent-downloads', array(
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => array(__CLASS__, 'get_recent_downloads'),
             'permission_callback' => array(__CLASS__, 'check_permissions'),
+            'args'                => array(
+                'search'            => array(
+                    'type'              => 'string',
+                    'description'       => 'Filter by customer email (partial match).',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'product_id'        => array(
+                    'type'        => 'integer',
+                    'description' => 'Filter by product ID.',
+                    'minimum'     => 1,
+                ),
+                'from_download_log' => array(
+                    'type'        => 'integer',
+                    'description' => 'When 1, date range is never overridden to all-time (used by Download Log page).',
+                    'minimum'     => 0,
+                    'maximum'     => 1,
+                ),
+                'user_type'         => array(
+                    'type'        => 'string',
+                    'description' => 'Filter by user type: all, guest, or registered.',
+                    'enum'        => array( 'all', 'guest', 'registered' ),
+                ),
+            ),
         ));
 
         // Products list (for export selection)
@@ -270,24 +293,30 @@ class Stats_Endpoint {
             $start, $end
         ));
 
-        // Today's downloads
-        $today = date('Y-m-d');
+        // Today's downloads (datetime range so MySQL can use index)
+        $today_start = date('Y-m-d') . ' 00:00:00';
+        $today_end   = date('Y-m-d', strtotime('+1 day')) . ' 00:00:00';
         $downloads_today = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->posts} 
              WHERE post_type = 'somdn_tracked' 
              AND post_status = 'publish'
-             AND DATE(post_date) = %s",
-            $today
+             AND post_date >= %s
+             AND post_date < %s",
+            $today_start,
+            $today_end
         ));
 
-        // Yesterday's downloads
-        $yesterday = date('Y-m-d', strtotime('-1 day'));
+        // Yesterday's downloads (datetime range so MySQL can use index)
+        $yesterday_start = date('Y-m-d', strtotime('-1 day')) . ' 00:00:00';
+        $yesterday_end   = date('Y-m-d') . ' 00:00:00';
         $downloads_yesterday = (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->posts} 
              WHERE post_type = 'somdn_tracked' 
              AND post_status = 'publish'
-             AND DATE(post_date) = %s",
-            $yesterday
+             AND post_date >= %s
+             AND post_date < %s",
+            $yesterday_start,
+            $yesterday_end
         ));
 
         // This week
@@ -342,27 +371,28 @@ class Stats_Endpoint {
         global $wpdb;
 
         $dates = self::parse_date_range($request);
-        $start = $dates['start'];
-        $end = $dates['end'];
+        $start = $dates['start'] . ' 00:00:00';
+        $end   = date('Y-m-d', strtotime($dates['end'] . ' +1 day')) . ' 00:00:00';
 
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT DATE(post_date) as date, COUNT(*) as count
              FROM {$wpdb->posts}
              WHERE post_type = 'somdn_tracked'
              AND post_status = 'publish'
-             AND DATE(post_date) >= %s
-             AND DATE(post_date) <= %s
+             AND post_date >= %s
+             AND post_date < %s
              GROUP BY DATE(post_date)
              ORDER BY date ASC",
-            $start, $end
+            $start,
+            $end
         ), ARRAY_A);
 
-        // Fill in missing dates with 0
+        // Fill in missing dates with 0 (use requested end date, not SQL end which is day-after)
         $all_dates = array();
-        $current = strtotime($start);
-        $end_time = strtotime($end);
+        $current = strtotime($dates['start']);
+        $fill_end = strtotime($dates['end']);
 
-        while ($current <= $end_time) {
+        while ($current <= $fill_end) {
             $date_key = date('Y-m-d', $current);
             $all_dates[$date_key] = 0;
             $current = strtotime('+1 day', $current);
@@ -495,45 +525,96 @@ class Stats_Endpoint {
 
     /**
      * Get recent downloads
+     *
+     * Supports optional search by customer email and filter by product ID.
      */
     public static function get_recent_downloads($request) {
         global $wpdb;
 
-        $dates = self::parse_date_range($request);
+        $search            = trim((string) $request->get_param('search'));
+        $product_id        = (int) $request->get_param('product_id');
+        $from_download_log = (int) $request->get_param('from_download_log');
+        $user_type         = $request->get_param('user_type');
+        if ( ! in_array( $user_type, array( 'guest', 'registered' ), true ) ) {
+            $user_type = '';
+        }
+
+        // When searching by email or filtering by product, use all-time range so overview results are not limited by date picker.
+        // On the Download Log page (from_download_log=1), always respect the chosen date range.
+        $dates = self::parse_date_range( $request );
+        if ( ( $search !== '' || $product_id > 0 ) && ! $from_download_log ) {
+            $dates = array(
+                'start' => '2000-01-01',
+                'end'   => gmdate( 'Y-m-d' ),
+            );
+        }
+
         $page = (int) $request->get_param('page') ?: 1;
         $per_page = (int) $request->get_param('per_page') ?: 10;
+        $per_page = min(max($per_page, 1), 100);
         $offset = ($page - 1) * $per_page;
 
         $start = $dates['start'] . ' 00:00:00';
         $end = $dates['end'] . ' 23:59:59';
 
-        // Get total count
-        $total = (int) $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->posts}
-             WHERE post_type = 'somdn_tracked'
-             AND post_status = 'publish'
-             AND post_date >= %s
-             AND post_date <= %s",
-            $start, $end
-        ));
+        $join_product = '';
+        $join_email  = '';
+        $join_user   = '';
+        $where_product = '';
+        $where_email   = '';
+        $where_user    = '';
+        // Prepare args: product %d, dates %s %s, email %s %s, then user_type has no placeholders (inline condition)
+        $prepare_args = array();
+        if ( $product_id > 0 ) {
+            $join_product  = " INNER JOIN {$wpdb->postmeta} AS pm_product ON p.ID = pm_product.post_id AND pm_product.meta_key = 'somdn_product_id' AND CAST(pm_product.meta_value AS UNSIGNED) = %d ";
+            $prepare_args[] = $product_id;
+        }
+        $prepare_args[] = $start;
+        $prepare_args[] = $end;
+        if ( $search !== '' ) {
+            $search_like = '%' . $wpdb->esc_like( $search ) . '%';
+            $join_email  = " LEFT JOIN {$wpdb->postmeta} AS pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = 'somdn_user_email' "
+                . " LEFT JOIN {$wpdb->postmeta} AS pm_user ON p.ID = pm_user.post_id AND pm_user.meta_key = 'somdn_user_id' "
+                . " LEFT JOIN {$wpdb->users} AS u ON u.ID = pm_user.meta_value ";
+            $where_email = ' AND (pm_email.meta_value LIKE %s OR u.user_email LIKE %s) ';
+            $prepare_args[] = $search_like;
+            $prepare_args[] = $search_like;
+        } elseif ( $user_type !== '' ) {
+            $join_user = " LEFT JOIN {$wpdb->postmeta} AS pm_user ON p.ID = pm_user.post_id AND pm_user.meta_key = 'somdn_user_id' ";
+            if ( $user_type === 'guest' ) {
+                $where_user = " AND (pm_user.meta_value IS NULL OR pm_user.meta_value = '' OR CAST(pm_user.meta_value AS UNSIGNED) = 0) ";
+            } else {
+                $where_user = ' AND CAST(pm_user.meta_value AS UNSIGNED) > 0 ';
+            }
+        }
 
-        // Get downloads
-        $downloads = $wpdb->get_results($wpdb->prepare(
-            "SELECT ID, post_date FROM {$wpdb->posts}
-             WHERE post_type = 'somdn_tracked'
-             AND post_status = 'publish'
-             AND post_date >= %s
-             AND post_date <= %s
-             ORDER BY post_date DESC
-             LIMIT %d OFFSET %d",
-            $start, $end, $per_page, $offset
-        ), ARRAY_A);
+        $count_sql = "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} AS p {$join_product}{$join_email}{$join_user}
+             WHERE p.post_type = 'somdn_tracked'
+             AND p.post_status = 'publish'
+             AND p.post_date >= %s
+             AND p.post_date <= %s {$where_product}{$where_email}{$where_user}";
+
+        $count_prepare_args = $prepare_args;
+        $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $prepare_args));
+        $last_db_error = $wpdb->last_error;
+
+        $prepare_args[] = $per_page;
+        $prepare_args[] = $offset;
+        $data_sql = "SELECT p.ID, p.post_date FROM {$wpdb->posts} AS p {$join_product}{$join_email}{$join_user}
+             WHERE p.post_type = 'somdn_tracked'
+             AND p.post_status = 'publish'
+             AND p.post_date >= %s
+             AND p.post_date <= %s {$where_product}{$where_email}{$where_user}
+             ORDER BY p.post_date DESC
+             LIMIT %d OFFSET %d";
+
+        $downloads = $wpdb->get_results($wpdb->prepare($data_sql, $prepare_args), ARRAY_A);
 
         $items = array();
 
         foreach ($downloads as $download) {
             $download_id = $download['ID'];
-            $product_id = get_post_meta($download_id, 'somdn_product_id', true);
+            $row_product_id = get_post_meta($download_id, 'somdn_product_id', true);
             $user_email = get_post_meta($download_id, 'somdn_user_email', true);
             $files = get_post_meta($download_id, 'somdn_download_files', true);
 
@@ -549,21 +630,46 @@ class Stats_Endpoint {
 
             $items[] = array(
                 'id'            => $download_id,
-                'product_id'    => (int) $product_id,
-                'product_name'  => html_entity_decode(get_the_title($product_id)),
+                'product_id'    => (int) $row_product_id,
+                'product_name'  => html_entity_decode(get_the_title($row_product_id)),
                 'file_name'     => $file_name,
                 'user_email'    => $user_email,
                 'download_date' => $download['post_date'],
             );
         }
 
-        return rest_ensure_response(array(
+        $response = array(
             'items'       => $items,
             'total'       => $total,
             'page'        => $page,
             'per_page'    => $per_page,
             'total_pages' => ceil($total / $per_page),
-        ));
+        );
+
+        // Debug info: copy from Network tab response and share for troubleshooting
+        $response['_debug'] = array(
+            'request_params' => array(
+                'search'      => $request->get_param('search'),
+                'product_id'  => $request->get_param('product_id'),
+                'start_date'  => $request->get_param('start_date'),
+                'end_date'    => $request->get_param('end_date'),
+                'page'        => $request->get_param('page'),
+                'per_page'    => $request->get_param('per_page'),
+            ),
+            'used' => array(
+                'search'           => $search,
+                'product_id'       => $product_id,
+                'dates_start'      => $dates['start'],
+                'dates_end'        => $dates['end'],
+                'has_product_join'  => $product_id > 0,
+                'has_email_join'    => $search !== '',
+            ),
+            'count_query_prepare_args' => $count_prepare_args,
+            'total'    => $total,
+            'wpdb_last_error' => $last_db_error ? $last_db_error : null,
+        );
+
+        return rest_ensure_response($response);
     }
 
     /**

@@ -43,9 +43,11 @@ add_filter('wpe_settings_sanitize_free-downloads-tracking', function($sanitized,
   // Show for Registered Users
   $out['somdn_capture_email_users_enable'] = !empty($data['somdn_capture_email_users_enable']) ? 'on' : '';
 
-  // Newsletter Subscription (0 = none, manual, mailchimp)
+  // Newsletter Subscription: allow 0, manual, mailchimp, and any value from somdn_sub_options (e.g. addon providers).
   $subscribe = isset($data['somdn_capture_email_subscribe']) ? sanitize_text_field($data['somdn_capture_email_subscribe']) : '0';
-  $out['somdn_capture_email_subscribe'] = in_array($subscribe, ['0', 'manual', 'mailchimp'], true) ? $subscribe : '0';
+  $allowed_subscribe = array_keys(apply_filters('somdn_sub_options', array('manual' => 'Manual', 'mailchimp' => 'MailChimp')));
+  $allowed_subscribe[] = '0';
+  $out['somdn_capture_email_subscribe'] = in_array($subscribe, $allowed_subscribe, true) ? $subscribe : '0';
 
   // Box Title
   $out['somdn_capture_email_title'] = sanitize_text_field($data['somdn_capture_email_title'] ?? '');
