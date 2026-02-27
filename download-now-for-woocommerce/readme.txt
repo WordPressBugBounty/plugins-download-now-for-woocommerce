@@ -5,7 +5,7 @@ Plugin URL: https://wordpress.org/plugins/download-now-for-woocommerce/
 Requires at Least: 4.4
 Tested up to: 6.9
 Requires PHP: 7.4.0
-Stable tag: 3.6.3
+Stable tag: 3.6.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: woocommerce, downloads, downloadable, free downloads, No Checkout
@@ -155,6 +155,9 @@ Below is a list of explicitly supported plugins:
 12. Download tracking period report displaying and exporting (Pro Edition)
 
 == Changelog ==
+
+= 3.6.4 - 27/02/26 =
+[FIX] Reporting was not rendering - js error
 
 = 3.6.3 - 27/02/26 =
 [NEW] (Pro Edition) Search box on My Account Free Downloads page so customers can find downloads by product name when using pagination

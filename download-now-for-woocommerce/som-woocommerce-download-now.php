@@ -4,7 +4,7 @@
  * Plugin Name: Free Downloads WooCommerce
  * Plugin URI: https://wpenhanced.com
  * Description: Allow users to instantly download your free digital products without going through the checkout. Free Version.
- * Version: 3.6.3
+ * Version: 3.6.4
  * Author: WP Enhanced
  * Author URI: https://wpenhanced.com
  * Requires at least: 4.4

@@ -63,8 +63,8 @@ if ( ! class_exists( 'WPE_Settings_Plugin_Registry' ) ) {
                 'slug'              => $slug,
                 'label'             => sanitize_text_field( $config['label'] ?? $slug ),
                 'script_url'        => esc_url( $config['script_url'] ?? '' ),
-                'version'           => sanitize_text_field( $config['version'] ?? '1.0.0' ),
-                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.0' ),
+                'version'           => sanitize_text_field( $config['version'] ?? '1.0.1' ),
+                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.1' ),
             );
         }
     }
@@ -217,7 +217,7 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
          */
         public function admin_menu() {
             $icon = DE_WPE_SETTINGS_URL . 'includes/settings/organization/wp-enhanced/images/dash-icon.svg';
-            
+
             add_menu_page(
                 __( 'WP Enhanced Settings', 'download-now-for-woocommerce' ),
                 __( 'WP Enhanced', 'download-now-for-woocommerce' ),
@@ -408,7 +408,7 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
                 }
                 
                 $handle  = 'wpe-settings-' . $plugin['slug'];
-                $version = $plugin['version'] ?? '1.0.0';
+                $version = $plugin['version'] ?? '1.0.1';
                 
                 wp_enqueue_script(
                     $handle,

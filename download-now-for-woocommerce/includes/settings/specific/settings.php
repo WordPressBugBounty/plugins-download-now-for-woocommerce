@@ -42,16 +42,21 @@ function somdn_register_settings_plugin($registry) {
     // Build URL to the pages bundle
     // __FILE__ is in /includes/settings/specific/settings.php
     // We need URL to /includes/settings/dist/free-downloads-woocommerce-pages.js
-    // 
+    //
     // plugin_dir_url(__FILE__) returns URL to /includes/settings/specific/
     // So we go up one level (../) to get to /includes/settings/ then into dist/
     $script_url = plugin_dir_url(__FILE__) . '../dist/free-downloads-woocommerce-pages.js';
-    
+
+    // Use plugin version + filemtime of built script for cache busting when the JS file changes
+    $base_version = defined('SOMDN_VERSION') ? SOMDN_VERSION : '1.0.1';
+    $script_path  = dirname(__FILE__) . '/../dist/free-downloads-woocommerce-pages.js';
+    $script_ver   = file_exists($script_path) ? $base_version . '.' . filemtime($script_path) : $base_version;
+
     $registry->add(array(
         'slug'              => 'free-downloads-woocommerce',
         'label'             => 'Free Downloads WooCommerce',
         'script_url'        => $script_url,
-        'version'           => defined('SOMDN_VERSION') ? SOMDN_VERSION : '1.0.0',
+        'version'           => $script_ver,
         'framework_version' => '2.0.0',
     ));
 }
@@ -60,28 +65,23 @@ function somdn_register_settings_plugin($registry) {
 // ADMIN SUBMENU REGISTRATION
 // =============================================================================
 
-add_action('admin_menu', 'somdn_add_submenu', 30);
+add_action( 'admin_menu', 'somdn_add_submenu', 30 );
 
 function somdn_add_submenu() {
     global $submenu;
-    
+
     // Ensure the main menu exists first
-    if (!isset($submenu['wp-enhanced'])) {
-        // Debug: Uncomment to check if menu exists
-        // error_log('Free Downloads: wp-enhanced menu not found');
+    if ( ! isset( $submenu['wp-enhanced'] ) ) {
         return;
     }
-    
+
     // Add submenu under WP Enhanced with custom URL including hash
     // Structure: [0] = Menu title, [1] = Capability, [2] = URL
     $submenu['wp-enhanced'][] = array(
-        'Free Downloads Woo',                             // Menu title
-        'manage_options',                                 // Capability
-        'admin.php?page=wp-enhanced#free-downloads-woocommerce'  // URL with hash for React routing
+        'Free Downloads Woo',
+        'manage_options',
+        'admin.php?page=wp-enhanced#free-downloads-woocommerce'
     );
-    
-    // Debug: Uncomment to verify submenu was added
-    // error_log('Free Downloads: Submenu added. Total submenus: ' . count($submenu['wp-enhanced']));
 }
 
 // =============================================================================
@@ -199,7 +199,7 @@ function somdn_localize_pro_status_in_head() {
         'somdn-addon-' . sanitize_key($addon['key']),
         esc_url_raw($addon['script_url']),
         array(),
-        isset($addon['version']) ? $addon['version'] : '1.0.0',
+        isset($addon['version']) ? $addon['version'] : '1.0.1',
         true
       );
     }

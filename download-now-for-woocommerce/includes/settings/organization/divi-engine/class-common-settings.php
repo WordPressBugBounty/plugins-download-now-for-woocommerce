@@ -75,8 +75,8 @@ if ( ! class_exists( 'DE_Settings_Plugin_Registry' ) ) {
                 'label'             => sanitize_text_field( $config['label'] ?? $slug ),
                 'color'             => sanitize_hex_color( $config['color'] ?? '' ),
                 'script_url'        => esc_url( $config['script_url'] ?? '' ),
-                'version'           => sanitize_text_field( $config['version'] ?? '1.0.0' ),
-                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.0' ),
+                'version'           => sanitize_text_field( $config['version'] ?? '1.0.1' ),
+                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.1' ),
             );
         }
     }
@@ -491,7 +491,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                 }
                 
                 $handle  = 'de-settings-' . $plugin['slug'];
-                $version = $plugin['version'] ?? '1.0.0';
+                $version = $plugin['version'] ?? '1.0.1';
                 
                 wp_enqueue_script(
                     $handle,
