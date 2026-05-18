@@ -2,6 +2,11 @@
 
 if (!defined('ABSPATH')) exit;
 
+/**
+ * Multiple Divi Engine plugins ship this file; only define and bootstrap once.
+ */
+if (!class_exists('DiviEngine_License_REST_Endpoints', false)) {
+
 class DiviEngine_License_REST_Endpoints {
 
     public function __construct() {
@@ -28,6 +33,17 @@ class DiviEngine_License_REST_Endpoints {
             'callback' => array($this, 'deactivate_license_key'),
             'permission_callback' => array($this, 'check_admin_permission'),
         ));
+
+        register_rest_route(
+            'de/v1',
+            '/force-remove-license',
+            array(
+                'methods'             => 'POST',
+                'callback'            => array($this, 'force_remove_license_key'),
+                'permission_callback' => array($this, 'check_admin_permission'),
+            )
+        );
+
         register_rest_route('de/v1', '/get-licenses', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_missing_licenses'),
@@ -113,10 +129,12 @@ class DiviEngine_License_REST_Endpoints {
             $response_block = end($response_block);
 
             if (isset($response_block->status) && $response_block->status === 'success') {
-                // Clear the license key locally
-                $license_data = get_option('divi_fb_license', []);
+                $license_data = $class_name::get_licence_data();
+                if (! is_array($license_data)) {
+                    $license_data = array();
+                }
                 $license_data['key'] = '';
-                update_option('divi_fb_license', $license_data);
+                $class_name::update_licence_data($license_data);
 
                 return rest_ensure_response(array(
                     'success' => true,
@@ -133,6 +151,73 @@ class DiviEngine_License_REST_Endpoints {
         return rest_ensure_response(array(
             'success' => false,
             'message' => __('Unexpected response from the license server.', 'download-now-for-woocommerce')
+        ));
+    }
+
+    /**
+     * Clear the license key locally without contacting the license server.
+     *
+     * @param WP_REST_Request $request Request with JSON body { "plugin": "divi-machine" } (settings plugin slug).
+     * @return WP_REST_Response
+     */
+    public function force_remove_license_key($request) {
+        $params      = $request->get_json_params();
+        $plugin_slug = isset($params['plugin']) ? sanitize_key((string) $params['plugin']) : '';
+
+        if ($plugin_slug === '') {
+            return rest_ensure_response(array(
+                'success' => false,
+                'message' => __('Plugin identifier is missing.', 'download-now-for-woocommerce'),
+            ));
+        }
+
+        $plugin_ids = apply_filters('divi_engine_plugin_ids', array());
+        $plugin_id  = isset($plugin_ids[ $plugin_slug ]) ? (string) $plugin_ids[ $plugin_slug ] : '';
+
+        // Embedded Ajax Filter often registers the API prefix under "daf" only.
+        if ($plugin_id === '' && 'divi-ajax-filter' === $plugin_slug) {
+            $plugin_id = isset($plugin_ids['daf']) ? (string) $plugin_ids['daf'] : '';
+        }
+
+        if ($plugin_id === '' || ! defined($plugin_id . '_PRODUCT_ID')) {
+            return rest_ensure_response(array(
+                'success' => false,
+                'message' => __('Unknown plugin for license removal.', 'download-now-for-woocommerce'),
+            ));
+        }
+
+        $class_name = $plugin_id . '_LICENSE';
+
+        if (! class_exists($class_name) || ! is_callable(array($class_name, 'get_licence_data')) || ! is_callable(array($class_name, 'update_licence_data'))) {
+            return rest_ensure_response(array(
+                'success' => false,
+                'message' => __('License storage for this plugin is not available.', 'download-now-for-woocommerce'),
+            ));
+        }
+
+        $license_data = $class_name::get_licence_data();
+        $current_key  = '';
+
+        if (is_array($license_data) && isset($license_data['key'])) {
+            $current_key = (string) $license_data['key'];
+        }
+
+        if ($current_key === '') {
+            return rest_ensure_response(array(
+                'success' => false,
+                'message' => __('No license key found to remove.', 'download-now-for-woocommerce'),
+            ));
+        }
+
+        if (! is_array($license_data)) {
+            $license_data = array();
+        }
+        $license_data['key'] = '';
+        $class_name::update_licence_data($license_data);
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => __('License key removed locally. You can now add a new license key.', 'download-now-for-woocommerce'),
         ));
     }
 
@@ -225,7 +310,7 @@ class DiviEngine_License_REST_Endpoints {
             return array(
                 'success' => true,
                 'message' => __('License activated successfully.', 'download-now-for-woocommerce'),
-                'formatted_key' => $license_key,
+                'formatted_key' => $formatted_key,
             );
         }
 
@@ -237,4 +322,9 @@ class DiviEngine_License_REST_Endpoints {
 
 }
 
-new DiviEngine_License_REST_Endpoints();
+} // class_exists DiviEngine_License_REST_Endpoints
+
+if (!defined('DE_DIVI_ENGINE_LICENSE_REST_ENDPOINTS_INIT')) {
+    define('DE_DIVI_ENGINE_LICENSE_REST_ENDPOINTS_INIT', true);
+    new DiviEngine_License_REST_Endpoints();
+}

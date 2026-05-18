@@ -18,23 +18,24 @@ if ( ! defined( 'DE_SETTINGS_FRAMEWORK_VERSION' ) ) {
     define( 'DE_SETTINGS_FRAMEWORK_VERSION', '2.0.0' );
 }
 
-// Define path constant, if not already defined
+// Define path constant, if not already defined (legacy; prefer plugin_dir_path( __FILE__ ) for this org).
 if ( ! defined( 'DE_WPE_SETTINGS_PATH' ) ) {
     define( 'DE_WPE_SETTINGS_PATH', plugin_dir_path( __FILE__ ) );
 }
 
-// Define URL constant, if not already defined
+// Define URL constant, if not already defined (legacy; may point at whichever org loads first — do not use for framework assets).
 if ( ! defined( 'DE_WPE_SETTINGS_URL' ) ) {
     define( 'DE_WPE_SETTINGS_URL', plugin_dir_url( dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) ) );
 }
 
-// Load the REST endpoints
-require_once DE_WPE_SETTINGS_PATH . 'rest-endpoints/class-rest-endpoint.php';
-require_once DE_WPE_SETTINGS_PATH . 'rest-endpoints/class-license-rest-endpoint.php';
-require_once DE_WPE_SETTINGS_PATH . 'rest-endpoints/class-settings-endpoint.php';
+// Load the REST endpoints for this organization only (avoid wrong org when DE_WPE_SETTINGS_PATH was set by WP Enhanced first).
+$de_divi_engine_org_dir = plugin_dir_path( __FILE__ );
+require_once $de_divi_engine_org_dir . 'rest-endpoints/class-rest-endpoint.php';
+require_once $de_divi_engine_org_dir . 'rest-endpoints/class-license-rest-endpoint.php';
+require_once $de_divi_engine_org_dir . 'rest-endpoints/class-settings-endpoint.php';
 
 // Load shared REST endpoints (from common folder)
-$common_endpoints_path = dirname( dirname( DE_WPE_SETTINGS_PATH ) ) . '/common/rest-endpoints/';
+$common_endpoints_path = dirname( __DIR__, 2 ) . '/common/rest-endpoints/';
 if ( file_exists( $common_endpoints_path . 'class-error-logs-endpoint.php' ) ) {
 	require_once $common_endpoints_path . 'class-error-logs-endpoint.php';
 }
@@ -75,8 +76,8 @@ if ( ! class_exists( 'DE_Settings_Plugin_Registry' ) ) {
                 'label'             => sanitize_text_field( $config['label'] ?? $slug ),
                 'color'             => sanitize_hex_color( $config['color'] ?? '' ),
                 'script_url'        => esc_url( $config['script_url'] ?? '' ),
-                'version'           => sanitize_text_field( $config['version'] ?? '1.0.1' ),
-                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.1' ),
+                'version'           => sanitize_text_field( $config['version'] ?? '1.0.0' ),
+                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.0' ),
             );
         }
     }
@@ -109,13 +110,34 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
          * @var string
          */
         private $framework_url;
+
+        /**
+         * Synthetic path for plugins_url() second argument (plugin root = dirname( __DIR__, 4 )).
+         * WordPress uses dirname( $plugin ) as the plugin folder; passing __FILE__ breaks asset URLs.
+         * The anchor filename need not exist.
+         *
+         * @var string
+         */
+        private $plugin_url_anchor;
+
+        /**
+         * Build identifier for this framework instance.
+         *
+         * Uses settings-app.js filemtime so equal semantic versions can still
+         * resolve to the newest synced build.
+         *
+         * @var int
+         */
+        private $framework_build;
         
         /**
          * Constructor
          */
         public function __construct() {
             $this->framework_version = DE_SETTINGS_FRAMEWORK_VERSION;
-            $this->framework_url = DE_WPE_SETTINGS_URL . 'includes/settings/';
+            $this->plugin_url_anchor = dirname( __DIR__, 4 ) . '/de-settings-url-anchor.php';
+            $this->framework_url     = trailingslashit( plugins_url( 'includes/settings', $this->plugin_url_anchor ) );
+            $this->framework_build = $this->get_framework_build_id();
             
             // Register this framework version IMMEDIATELY (not via hook)
             // This ensures it's registered even if class is instantiated after plugins_loaded
@@ -146,15 +168,37 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                 $de_settings_frameworks = array();
             }
             
-            // Only register if this version isn't already registered or is newer
-            if ( ! isset( $de_settings_frameworks[ $this->framework_version ] ) ) {
+            $existing = isset( $de_settings_frameworks[ $this->framework_version ] )
+                ? $de_settings_frameworks[ $this->framework_version ]
+                : null;
+            $existing_build = isset( $existing['build'] ) ? (int) $existing['build'] : 0;
+
+            // Register if version missing, or replace same-version entry when this
+            // plugin ships a newer framework build.
+            if ( ! isset( $de_settings_frameworks[ $this->framework_version ] ) || $this->framework_build > $existing_build ) {
                 $de_settings_frameworks[ $this->framework_version ] = array(
                     'version'   => $this->framework_version,
+                    'build'     => $this->framework_build,
                     'core_url'  => $this->framework_url . 'dist/settings-app.js',
                     'style_url' => $this->framework_url . 'dist/assets/',
                     'loader'    => $this,
                 );
             }
+        }
+
+        /**
+         * Get a numeric build identifier for this framework instance.
+         *
+         * @return int
+         */
+        private function get_framework_build_id() {
+            $settings_app_path = dirname( __DIR__, 2 ) . '/dist/settings-app.js';
+
+            if ( file_exists( $settings_app_path ) ) {
+                return (int) filemtime( $settings_app_path );
+            }
+
+            return 0;
         }
         
         /**
@@ -206,8 +250,19 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
          * @return bool True if this is the highest version
          */
         private function should_load_core() {
+            global $de_settings_frameworks;
+
             $highest = $this->get_highest_framework_version();
-            return $highest === $this->framework_version;
+            if ( $highest !== $this->framework_version ) {
+                return false;
+            }
+
+            if ( empty( $de_settings_frameworks[ $this->framework_version ]['loader'] ) ) {
+                return false;
+            }
+
+            // Only the selected loader instance should enqueue core.
+            return $de_settings_frameworks[ $this->framework_version ]['loader'] === $this;
         }
 
         /**
@@ -231,7 +286,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                 return;
             }
 
-            $icon = DE_WPE_SETTINGS_URL . 'includes/settings/organization/divi-engine/images/dash-icon.svg';
+            $icon = $this->framework_url . 'organization/divi-engine/images/dash-icon.svg';
 
             add_menu_page(
                 __( 'Divi Engine Settings', 'download-now-for-woocommerce' ),
@@ -438,7 +493,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                 'de-settings-core',
                 $core_url,
                 array( 'react', 'react-dom' ),
-                $this->framework_version,
+                $this->framework_version . '.' . $this->framework_build,
                 true
             );
             
@@ -450,7 +505,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                     'nonce'            => wp_create_nonce( 'wp_rest' ),
                     'restUrl'          => esc_url_raw( rest_url() ),
                     'hasWoo'           => class_exists( 'WooCommerce' ),
-                    'settingsUrl'      => DE_WPE_SETTINGS_URL,
+                    'settingsUrl'      => trailingslashit( plugins_url( '', $this->plugin_url_anchor ) ),
                     'frameworkVersion' => $this->framework_version,
                 )
             );
@@ -491,7 +546,7 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
                 }
                 
                 $handle  = 'de-settings-' . $plugin['slug'];
-                $version = $plugin['version'] ?? '1.0.1';
+                $version = $plugin['version'] ?? '1.0.0';
                 
                 wp_enqueue_script(
                     $handle,

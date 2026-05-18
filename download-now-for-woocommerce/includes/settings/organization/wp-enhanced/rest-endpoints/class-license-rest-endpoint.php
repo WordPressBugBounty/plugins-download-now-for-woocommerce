@@ -285,7 +285,7 @@ class WPEnhanced_License_REST_Endpoints {
         return array(
             'success' => true,
             'message' => __('License activated successfully.', 'download-now-for-woocommerce'),
-            'formatted_key' => $license_key,
+            'formatted_key' => $formatted_key,
         );
     }
 

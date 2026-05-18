@@ -18,12 +18,12 @@ if ( ! defined( 'WPE_SETTINGS_FRAMEWORK_VERSION' ) ) {
     define( 'WPE_SETTINGS_FRAMEWORK_VERSION', '2.0.0' );
 }
 
-// Define path constant, if not already defined
+// Define path constant, if not already defined (legacy; prefer plugin_dir_path( __FILE__ ) for this org).
 if ( ! defined( 'DE_WPE_SETTINGS_PATH' ) ) {
     define( 'DE_WPE_SETTINGS_PATH', plugin_dir_path( __FILE__ ) );
 }
 
-// Define URL constant, if not already defined
+// Define URL constant, if not already defined (legacy; may point at whichever org loads first — do not use for framework assets).
 if ( ! defined( 'DE_WPE_SETTINGS_URL' ) ) {
     define( 'DE_WPE_SETTINGS_URL', plugin_dir_url( dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) ) );
 }
@@ -63,8 +63,8 @@ if ( ! class_exists( 'WPE_Settings_Plugin_Registry' ) ) {
                 'slug'              => $slug,
                 'label'             => sanitize_text_field( $config['label'] ?? $slug ),
                 'script_url'        => esc_url( $config['script_url'] ?? '' ),
-                'version'           => sanitize_text_field( $config['version'] ?? '1.0.1' ),
-                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.1' ),
+                'version'           => sanitize_text_field( $config['version'] ?? '1.0.0' ),
+                'framework_version' => sanitize_text_field( $config['framework_version'] ?? '1.0.0' ),
             );
         }
     }
@@ -94,20 +94,28 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
          * @var string
          */
         private $framework_url;
+
+        /**
+         * Synthetic path for plugins_url() second argument (plugin root = dirname( __DIR__, 4 )).
+         *
+         * @var string
+         */
+        private $plugin_url_anchor;
         
         /**
          * Constructor
          */
         public function __construct() {
             $this->framework_version = WPE_SETTINGS_FRAMEWORK_VERSION;
-            $this->framework_url = DE_WPE_SETTINGS_URL . 'includes/settings/';
+            $this->plugin_url_anchor = dirname( __DIR__, 4 ) . '/de-settings-url-anchor.php';
+            $this->framework_url     = trailingslashit( plugins_url( 'includes/settings', $this->plugin_url_anchor ) );
             
             // Define legacy constants for backwards compatibility
             if ( ! defined( 'WPE_SETTINGS_PATH' ) ) {
                 define( 'WPE_SETTINGS_PATH', plugin_dir_path( __FILE__ ) );
             }
             if ( ! defined( 'WPE_SETTINGS_URL' ) ) {
-                define( 'WPE_SETTINGS_URL', plugin_dir_url( __FILE__ ) );
+                define( 'WPE_SETTINGS_URL', trailingslashit( plugins_url( '', $this->plugin_url_anchor ) ) );
             }
             
             // Register this framework version (priority 5 = early)
@@ -126,13 +134,14 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
 
             add_action( 'wp_ajax_wpe_settings_get_post_list', array( $this, 'ajax_get_post_list' ) );
             
-			// Load REST endpoints
-			require_once WPE_SETTINGS_PATH . 'rest-endpoints/class-settings-endpoint.php';
-			require_once WPE_SETTINGS_PATH . 'rest-endpoints/class-license-rest-endpoint.php';
-			require_once WPE_SETTINGS_PATH . 'rest-endpoints/class-rest-endpoint.php';
+			// Load REST endpoints for this organization only.
+			$wpe_org_dir = plugin_dir_path( __FILE__ );
+			require_once $wpe_org_dir . 'rest-endpoints/class-settings-endpoint.php';
+			require_once $wpe_org_dir . 'rest-endpoints/class-license-rest-endpoint.php';
+			require_once $wpe_org_dir . 'rest-endpoints/class-rest-endpoint.php';
 
 			// Load shared REST endpoints (from common folder)
-			$common_endpoints_path = dirname( dirname( WPE_SETTINGS_PATH ) ) . '/common/rest-endpoints/';
+			$common_endpoints_path = dirname( __DIR__, 2 ) . '/common/rest-endpoints/';
 			if ( file_exists( $common_endpoints_path . 'class-error-logs-endpoint.php' ) ) {
 				require_once $common_endpoints_path . 'class-error-logs-endpoint.php';
 			}
@@ -216,8 +225,8 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
          * Add settings page to the admin menu
          */
         public function admin_menu() {
-            $icon = DE_WPE_SETTINGS_URL . 'includes/settings/organization/wp-enhanced/images/dash-icon.svg';
-
+            $icon = $this->framework_url . 'organization/wp-enhanced/images/dash-icon.svg';
+            
             add_menu_page(
                 __( 'WP Enhanced Settings', 'download-now-for-woocommerce' ),
                 __( 'WP Enhanced', 'download-now-for-woocommerce' ),
@@ -304,7 +313,7 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
                     'nonce'            => wp_create_nonce( 'wp_rest' ),
                     'restUrl'          => esc_url_raw( rest_url() ),
                     'hasWoo'           => class_exists( 'WooCommerce' ),
-                    'settingsUrl'      => DE_WPE_SETTINGS_URL,
+                    'settingsUrl'      => trailingslashit( plugins_url( '', $this->plugin_url_anchor ) ),
                     'frameworkVersion' => $this->framework_version,
                 )
             );
@@ -408,7 +417,7 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
                 }
                 
                 $handle  = 'wpe-settings-' . $plugin['slug'];
-                $version = $plugin['version'] ?? '1.0.1';
+                $version = $plugin['version'] ?? '1.0.0';
                 
                 wp_enqueue_script(
                     $handle,

@@ -7,6 +7,43 @@
 
 add_filter('wpe_settings_sanitize_free-downloads-tracking', function($sanitized, $data) {
   $out = [];
+  $sanitize_color_value = static function($value, $default) {
+    // React ColorFieldset can send either hex strings or RGBA objects.
+    if (is_array($value)) {
+      $r = isset($value['r']) ? max(0, min(255, absint($value['r']))) : null;
+      $g = isset($value['g']) ? max(0, min(255, absint($value['g']))) : null;
+      $b = isset($value['b']) ? max(0, min(255, absint($value['b']))) : null;
+      $a_raw = isset($value['a']) ? (float) $value['a'] : 1.0;
+      $a = max(0, min(1, $a_raw));
+
+      if ($r !== null && $g !== null && $b !== null) {
+        return sprintf('rgba(%d, %d, %d, %.2F)', $r, $g, $b, $a);
+      }
+    }
+
+    if (is_string($value)) {
+      $value = trim($value);
+      if ($value === '') {
+        return $default;
+      }
+
+      $hex = sanitize_hex_color($value);
+      if (!empty($hex)) {
+        return $hex;
+      }
+
+      if (preg_match('/^rgba?\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})(?:\s*,\s*((?:0|1)(?:\.\d+)?))?\s*\)$/i', $value, $matches)) {
+        $r = max(0, min(255, absint($matches[1])));
+        $g = max(0, min(255, absint($matches[2])));
+        $b = max(0, min(255, absint($matches[3])));
+        $a = isset($matches[4]) ? max(0, min(1, (float) $matches[4])) : 1.0;
+
+        return sprintf('rgba(%d, %d, %d, %.2F)', $r, $g, $b, $a);
+      }
+    }
+
+    return $default;
+  };
   
   // Only save if Pro is active (security check)
   if (!defined('SOMDN_PRO_VERSION')) {
@@ -62,12 +99,16 @@ add_filter('wpe_settings_sanitize_free-downloads-tracking', function($sanitized,
   $out['somdn_capture_email_error_invalid'] = sanitize_text_field($data['somdn_capture_email_error_invalid'] ?? '');
 
   // Title Background Color (hex color)
-  $title_bg = isset($data['somdn_capture_email_title_bg']) ? sanitize_hex_color($data['somdn_capture_email_title_bg']) : '#2679ce';
-  $out['somdn_capture_email_title_bg'] = $title_bg ?: '#2679ce';
+  $out['somdn_capture_email_title_bg'] = $sanitize_color_value(
+    $data['somdn_capture_email_title_bg'] ?? null,
+    '#2679ce'
+  );
 
   // Title Font Color (hex color)
-  $title_colour = isset($data['somdn_capture_email_title_colour']) ? sanitize_hex_color($data['somdn_capture_email_title_colour']) : '#ffffff';
-  $out['somdn_capture_email_title_colour'] = $title_colour ?: '#ffffff';
+  $out['somdn_capture_email_title_colour'] = $sanitize_color_value(
+    $data['somdn_capture_email_title_colour'] ?? null,
+    '#ffffff'
+  );
 
   // Box Text (allow HTML)
   $out['somdn_capture_email_body'] = wp_kses_post($data['somdn_capture_email_body'] ?? '');

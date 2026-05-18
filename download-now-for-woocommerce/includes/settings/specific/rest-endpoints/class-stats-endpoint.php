@@ -69,6 +69,17 @@ class Stats_Endpoint {
             $export_columns = array();
         }
 
+        $log_ids = array();
+        if (isset($_POST['log_ids'])) {
+            $raw_log_ids = wp_unslash($_POST['log_ids']);
+            if (is_string($raw_log_ids)) {
+                $decoded = json_decode($raw_log_ids, true);
+                if (is_array($decoded)) {
+                    $log_ids = array_values(array_unique(array_filter(array_map('absint', $decoded))));
+                }
+            }
+        }
+
         if (!function_exists('somdn_get_downloads_data')) {
             wp_die(esc_html__('Export is not available.', 'free-downloads-woocommerce'), '', array('response' => 500));
         }
@@ -77,6 +88,9 @@ class Stats_Endpoint {
             'start_date' => $start_date,
             'end_date'   => $end_date,
         );
+        if (!empty($log_ids)) {
+            $download_args['log_ids'] = $log_ids;
+        }
         $download_data = somdn_get_downloads_data($download_args, $format, $export_type, $export_products);
 
         if (empty($download_data)) {
@@ -215,6 +229,21 @@ class Stats_Endpoint {
             'methods'             => \WP_REST_Server::CREATABLE,
             'callback'            => array(__CLASS__, 'delete_logs_batch'),
             'permission_callback' => array(__CLASS__, 'check_delete_permissions'),
+        ));
+
+        // Delete a single download log entry (tracked post)
+        register_rest_route(self::NAMESPACE, '/stats/download-log/(?P<id>\d+)', array(
+            'methods'             => \WP_REST_Server::DELETABLE,
+            'callback'            => array(__CLASS__, 'delete_download_log_entry'),
+            'permission_callback' => array(__CLASS__, 'check_delete_permissions'),
+            'args'                => array(
+                'id' => array(
+                    'description'       => 'Download log post ID (somdn_tracked).',
+                    'type'              => 'integer',
+                    'required'          => true,
+                    'sanitize_callback' => 'absint',
+                ),
+            ),
         ));
     }
 
@@ -598,6 +627,35 @@ class Stats_Endpoint {
         $total = (int) $wpdb->get_var($wpdb->prepare($count_sql, $prepare_args));
         $last_db_error = $wpdb->last_error;
 
+        // PHP log for debugging Recent Downloads / product filter (grep: SOMDN Recent Downloads)
+        error_log('[SOMDN Recent Downloads] request: search=' . var_export($search, true) . ' product_id=' . $product_id . ' dates=' . $dates['start'] . ' to ' . $dates['end']);
+        error_log('[SOMDN Recent Downloads] count_sql: ' . $count_sql);
+        error_log('[SOMDN Recent Downloads] count_prepare_args: ' . implode(', ', array_map(function ($a) {
+            return is_string($a) ? '"' . $a . '"' : $a;
+        }, $count_prepare_args)));
+        error_log('[SOMDN Recent Downloads] total=' . $total . ' wpdb_last_error=' . ($last_db_error ?: 'null'));
+
+        // When product filter returns 0, log DB diagnostics to see how product_id is stored
+        if ($product_id > 0 && $total === 0) {
+            $posts_table = $wpdb->posts;
+            $meta_table = $wpdb->postmeta;
+            $diag_count_string = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$posts_table} p INNER JOIN {$meta_table} pm ON p.ID = pm.post_id AND pm.meta_key = 'somdn_product_id' AND pm.meta_value = %s WHERE p.post_type = 'somdn_tracked' AND p.post_status = 'publish'",
+                (string) $product_id
+            ));
+            $diag_count_cast = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$posts_table} p INNER JOIN {$meta_table} pm ON p.ID = pm.post_id AND pm.meta_key = 'somdn_product_id' AND CAST(pm.meta_value AS UNSIGNED) = %d WHERE p.post_type = 'somdn_tracked' AND p.post_status = 'publish'",
+                $product_id
+            ));
+            $diag_sample = $wpdb->get_col(
+                "SELECT DISTINCT pm.meta_value FROM {$posts_table} p INNER JOIN {$meta_table} pm ON p.ID = pm.post_id AND pm.meta_key = 'somdn_product_id' WHERE p.post_type = 'somdn_tracked' AND p.post_status = 'publish' LIMIT 10"
+            );
+            error_log('[SOMDN Recent Downloads] DIAG product_id=' . $product_id . ': count where meta_value="' . $product_id . '" = ' . $diag_count_string . ', count where CAST(meta_value)= ' . $product_id . ' = ' . $diag_count_cast);
+            error_log('[SOMDN Recent Downloads] DIAG sample somdn_product_id meta_values in DB: ' . implode(', ', array_map(function ($v) {
+                return '"' . $v . '"';
+            }, $diag_sample ?: array())));
+        }
+
         $prepare_args[] = $per_page;
         $prepare_args[] = $offset;
         $data_sql = "SELECT p.ID, p.post_date FROM {$wpdb->posts} AS p {$join_product}{$join_email}{$join_user}
@@ -778,11 +836,23 @@ class Stats_Endpoint {
             $export_columns = json_decode($export_columns, true) ?: array();
         }
 
+        $log_ids = $request->get_param('log_ids');
+        if (is_string($log_ids)) {
+            $log_ids = json_decode($log_ids, true);
+        }
+        if (!is_array($log_ids)) {
+            $log_ids = array();
+        }
+        $log_ids = array_values(array_unique(array_filter(array_map('absint', $log_ids))));
+
         // Build download args
         $download_args = array(
             'start_date' => $start_date,
             'end_date'   => $end_date,
         );
+        if (!empty($log_ids)) {
+            $download_args['log_ids'] = $log_ids;
+        }
 
         // Check if the legacy function exists
         if (!function_exists('somdn_get_downloads_data')) {
@@ -816,6 +886,38 @@ class Stats_Endpoint {
      */
     public static function check_delete_permissions() {
         return current_user_can('manage_options');
+    }
+
+    /**
+     * Delete one download log entry by post ID.
+     *
+     * @param \WP_REST_Request $request Request with id param.
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public static function delete_download_log_entry($request) {
+        global $wpdb;
+
+        $id = absint($request['id']);
+        if ($id < 1) {
+            return new \WP_Error('invalid_id', __('Invalid log entry.', 'free-downloads-woocommerce'), array('status' => 400));
+        }
+
+        $post = get_post($id);
+        if (!$post || 'somdn_tracked' !== $post->post_type || 'publish' !== $post->post_status) {
+            return new \WP_Error('not_found', __('Download log entry not found.', 'free-downloads-woocommerce'), array('status' => 404));
+        }
+
+        $wpdb->delete($wpdb->postmeta, array('post_id' => $id), array('%d'));
+        $deleted = $wpdb->delete($wpdb->posts, array('ID' => $id), array('%d'));
+
+        if (!$deleted) {
+            return new \WP_Error('delete_failed', __('Could not delete this log entry.', 'free-downloads-woocommerce'), array('status' => 500));
+        }
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'id'      => $id,
+        ));
     }
 
     /**

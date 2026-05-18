@@ -5,7 +5,7 @@ Plugin URL: https://wordpress.org/plugins/download-now-for-woocommerce/
 Requires at Least: 4.4
 Tested up to: 6.9
 Requires PHP: 7.4.0
-Stable tag: 3.6.4
+Stable tag: 3.6.5
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: woocommerce, downloads, downloadable, free downloads, No Checkout
@@ -156,10 +156,21 @@ Below is a list of explicitly supported plugins:
 
 == Changelog ==
 
-= 3.6.4 - 27/02/26 =
-[FIX] Reporting was not rendering - js error
+= 3.6.5 - 18/05/26 =
+[NEW] (Pro Edition) Download log: select multiple entries and delete them from the Actions menu
+[NEW] (Pro Edition) Download log: delete a single entry from the row menu
+[MOD] (Pro Edition) Download log: export one or many entries as a spreadsheet from the row menu or bulk actions (uses your column choices from Reports)
+[MOD] Pro-only settings on the free edition use a compact PRO badge; open it to see the full description and upgrade option
+[FIX] Settings work with Sister Company Divi Engine plugin's setting pages.
+[FIX] (Pro Edition) Monthly download limits for members now follow the correct membership plan and subscription renewal cycle when “limit period from subscription date” is enabled
+[MOD] (Pro Edition) Monthly limit debug lines also go to the PHP error log when WordPress debug log is enabled, and the plugin debug toggle is read more reliably
+[FIX] (Pro Edition) Debug logging can record how monthly limit windows are calculated when troubleshooting limit counts (enable in Debug settings)
+[FIX] (Pro Edition) Capture email title colors now save and display correctly when customized in Tracking settings
+[FIX] (Pro Edition) Email capture form now shows the configured "No Email" and "Invalid Email" messages (or the plugin defaults) instead of the browser's built-in messages
+[FIX] Fixed PHP warnings with php8+
+[FIX] Product pages (simple and variable), bundles, quick view, and the download shortcode only prompt guests to log in when “Only Show Button to Logged In Users” is turned on (fixed the login message appearing when that setting was off)
 
-= 3.6.3 - 27/02/26 =
+= 3.6.3 = 27/02/26
 [NEW] (Pro Edition) Search box on My Account Free Downloads page so customers can find downloads by product name when using pagination
 [MOD] (Pro Edition) Plugin now creates a database index on activation to improve performance for meta lookups on high-volume installs
 [MOD] (Pro Edition) Reports stats queries now use date ranges instead of DATE() in filters so the database can use indexes; dashboard and chart load faster on large datasets

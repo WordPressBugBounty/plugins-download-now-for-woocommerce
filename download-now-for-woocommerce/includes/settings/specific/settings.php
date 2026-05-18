@@ -62,6 +62,32 @@ function somdn_register_settings_plugin($registry) {
 }
 
 // =============================================================================
+// LOCAL DEV: bust core settings-app.js cache (Vite watch + static framework ver)
+// =============================================================================
+// npm run start:free / start:pro writes .dev/free-mode; core bundle still uses a
+// fixed wp_enqueue_script version otherwise, so the browser keeps old JS.
+
+add_action( 'admin_enqueue_scripts', 'somdn_bust_settings_core_script_for_local_dev', 999 );
+
+function somdn_bust_settings_core_script_for_local_dev() {
+    $plugin_root = dirname( __FILE__, 4 );
+    if ( ! is_readable( $plugin_root . '/.dev/free-mode' ) ) {
+        return;
+    }
+    $dist_path = dirname( __FILE__, 2 ) . '/dist/settings-app.js';
+    if ( ! is_readable( $dist_path ) ) {
+        return;
+    }
+    $ver = (string) filemtime( $dist_path );
+    $wp_scripts = wp_scripts();
+    foreach ( array( 'wpe-settings-core', 'de-settings-core' ) as $handle ) {
+        if ( isset( $wp_scripts->registered[ $handle ] ) ) {
+            $wp_scripts->registered[ $handle ]->ver = $ver;
+        }
+    }
+}
+
+// =============================================================================
 // ADMIN SUBMENU REGISTRATION
 // =============================================================================
 
@@ -188,6 +214,7 @@ function somdn_localize_pro_status_in_head() {
     'export_nonce' => wp_create_nonce('somdn_stats_export'),
     'addon_sections' => $addon_sections,
     'newsletter_subscribe_options' => $newsletter_subscribe_options,
+    'can_delete_logs' => current_user_can('manage_options'),
   ));
 
   echo '<script id="somdn-settings-data">window.somdn_settings = ' . $settings_data . ';</script>' . "\n";

@@ -62,7 +62,7 @@ function wpe_sanitize_settings($plugin, $data) {
   $filter_name = "wpe_settings_sanitize_{$plugin}";
   $has_filter = has_filter($filter_name);
   
-  $sanitized = apply_filters($filter_name, $data, $data, $plugin);
+  $sanitized = apply_filters($filter_name, array(), $data, $plugin);
 
   return is_array($sanitized) ? $sanitized : (array) $sanitized;
 }

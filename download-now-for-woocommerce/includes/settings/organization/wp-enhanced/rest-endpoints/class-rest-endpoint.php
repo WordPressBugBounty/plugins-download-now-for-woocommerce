@@ -258,6 +258,10 @@ class WPEnhanced_REST_Endpoints {
                 return new WP_Error('missing_plugin_file', 'Missing plugin_file for activation', ['status' => 400]);
             }
             include_once ABSPATH . 'wp-admin/includes/plugin.php';
+            $all_plugins = get_plugins();
+            if ( ! isset( $all_plugins[ $plugin_file ] ) ) {
+                return new WP_Error( 'invalid_plugin_file', 'Plugin not found', array( 'status' => 400 ) );
+            }
             $result = activate_plugin($plugin_file);
             if (is_wp_error($result)) {
                 if ($result->get_error_code() === 'plugin_already_active') {

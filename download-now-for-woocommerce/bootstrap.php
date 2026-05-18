@@ -20,6 +20,11 @@ use const DIRECTORY_SEPARATOR as SEP;
 
 defined('ABSPATH') || exit;
 
+// Local dev: `.dev/free-mode` is created by `npm run start:free` so the Pro loader is skipped.
+if ( ! defined( 'SOMDN_DEV_FREE_MODE' ) && is_readable( __DIR__ . '/.dev/free-mode' ) ) {
+	define( 'SOMDN_DEV_FREE_MODE', true );
+}
+
 (function(){
     $base = __DIR__ . SEP;
     $includes = is_dir($base . 'Includes') ? $base . 'Includes' . SEP : $base . 'includes' . SEP;

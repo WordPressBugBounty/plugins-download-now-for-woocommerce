@@ -123,7 +123,7 @@ function somdn_quickview_download_form_simple($product, $product_id) {
   $multioptions = get_option('somdn_multi_settings');
   $docoptions = get_option('somdn_docviewer_settings');
 
-  $requirelogin = isset($genoptions['somdn_require_login']) ? true : false ;
+  $requirelogin = !empty($genoptions['somdn_require_login']);
 
   if (!is_user_logged_in() && $requirelogin) {
 

@@ -2,6 +2,11 @@
 
 if (!defined('ABSPATH')) exit;
 
+/**
+ * Multiple Divi Engine plugins ship this file; only define and bootstrap once.
+ */
+if (!class_exists('DiviEngine_REST_Endpoints', false)) {
+
 class DiviEngine_REST_Endpoints {
 
     public function __construct() {
@@ -26,7 +31,7 @@ class DiviEngine_REST_Endpoints {
                 }, $terms);
                 return rest_ensure_response($result);
             },
-            'permission_callback' => '__return_true', // Public, or use your own permission callback
+            'permission_callback' => function() { return current_user_can( 'manage_options' ); },
         ));
 
         register_rest_route('de/v1', '/incomplete-achievements', array(
@@ -99,7 +104,7 @@ class DiviEngine_REST_Endpoints {
 
                 return rest_ensure_response($result);
             },
-            'permission_callback' => '__return_true',
+            'permission_callback' => function() { return current_user_can( 'manage_options' ); },
         ));
 
         register_rest_route('de/v1', '/completed-achievements', array(
@@ -137,9 +142,14 @@ class DiviEngine_REST_Endpoints {
 
                 return rest_ensure_response($result);
             },
-            'permission_callback' => '__return_true',
+            'permission_callback' => function() { return current_user_can( 'manage_options' ); },
         ));
     }
 }
 
-new DiviEngine_REST_Endpoints();
+} // class_exists DiviEngine_REST_Endpoints
+
+if (!defined('DE_DIVI_ENGINE_REST_ENDPOINTS_INIT')) {
+    define('DE_DIVI_ENGINE_REST_ENDPOINTS_INIT', true);
+    new DiviEngine_REST_Endpoints();
+}

@@ -13,14 +13,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'rest_api_init', 'de_register_error_logs_routes' );
-
 /**
- * Register error logs REST routes.
- *
- * Routes are registered under both namespaces (de/v1 and wpe/v1) for compatibility.
+ * Shared error-logs REST routes are loaded from each plugin's copy of this file.
+ * Guard the whole block so multiple active plugins do not redeclare functions or double-register hooks.
  */
-function de_register_error_logs_routes() {
+if ( ! function_exists( 'de_register_error_logs_routes' ) ) {
+
+	add_action( 'rest_api_init', 'de_register_error_logs_routes' );
+
+	/**
+	 * Register error logs REST routes.
+	 *
+	 * Routes are registered under both namespaces (de/v1 and wpe/v1) for compatibility.
+	 */
+	function de_register_error_logs_routes() {
 	$namespaces = array( 'de/v1', 'wpe/v1' );
 
 	foreach ( $namespaces as $namespace ) {
@@ -84,24 +90,24 @@ function de_register_error_logs_routes() {
 			)
 		);
 	}
-}
+	}
 
-/**
- * Check if user has permission to access error logs.
- *
- * @return bool
- */
-function de_error_logs_permission_check() {
+	/**
+	 * Check if user has permission to access error logs.
+	 *
+	 * @return bool
+	 */
+	function de_error_logs_permission_check() {
 	return current_user_can( 'manage_options' );
-}
+	}
 
-/**
- * Get error log contents.
- *
- * @param WP_REST_Request $request The request object.
- * @return WP_REST_Response|WP_Error
- */
-function de_get_error_logs( WP_REST_Request $request ) {
+	/**
+	 * Get error log contents.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	function de_get_error_logs( WP_REST_Request $request ) {
 	$log_path   = $request->get_param( 'log_path' );
 	$upload_dir = wp_upload_dir();
 	$full_path  = $upload_dir['basedir'] . '/' . $log_path;
@@ -129,21 +135,21 @@ function de_get_error_logs( WP_REST_Request $request ) {
 
 	return rest_ensure_response(
 		array(
-			'content'  => esc_html( $content ),
+			'content'  => $content,
 			'exists'   => true,
 			'size'     => filesize( $full_path ),
 			'modified' => filemtime( $full_path ),
 		)
 	);
-}
+	}
 
-/**
- * Delete error log file.
- *
- * @param WP_REST_Request $request The request object.
- * @return WP_REST_Response|WP_Error
- */
-function de_delete_error_logs( WP_REST_Request $request ) {
+	/**
+	 * Delete error log file.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	function de_delete_error_logs( WP_REST_Request $request ) {
 	$log_path   = $request->get_param( 'log_path' );
 	$upload_dir = wp_upload_dir();
 	$full_path  = $upload_dir['basedir'] . '/' . $log_path;
@@ -180,15 +186,15 @@ function de_delete_error_logs( WP_REST_Request $request ) {
 			'message' => 'Log file deleted successfully.',
 		)
 	);
-}
+	}
 
-/**
- * Write a test log entry.
- *
- * @param WP_REST_Request $request The request object.
- * @return WP_REST_Response|WP_Error
- */
-function de_test_error_logs( WP_REST_Request $request ) {
+	/**
+	 * Write a test log entry.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	function de_test_error_logs( WP_REST_Request $request ) {
 	$log_path   = $request->get_param( 'log_path' );
 	$message    = $request->get_param( 'message' );
 	$upload_dir = wp_upload_dir();
@@ -239,4 +245,6 @@ function de_test_error_logs( WP_REST_Request $request ) {
 			'message' => 'Test log entry written successfully.',
 		)
 	);
-}
+	}
+
+} // function_exists de_register_error_logs_routes
