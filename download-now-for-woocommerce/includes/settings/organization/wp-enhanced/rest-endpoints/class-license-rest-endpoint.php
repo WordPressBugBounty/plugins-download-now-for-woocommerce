@@ -16,29 +16,33 @@ class WPEnhanced_License_REST_Endpoints {
     }
 
     public function register_endpoints() {
-        register_rest_route('wpe/v1', '/validate-license', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'validate_license_key'),
-            'permission_callback' => array($this, 'check_admin_permission'),
-        ));
+        $namespaces = (array) apply_filters('wp_enhanced_license_rest_namespaces', array('wpe/v1'));
 
-        register_rest_route('wpe/v1', '/deactivate-license', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'deactivate_license_key'),
-            'permission_callback' => array($this, 'check_admin_permission'),
-        ));
+        foreach (array_unique($namespaces) as $namespace) {
+            register_rest_route($namespace, '/validate-license', array(
+                'methods' => 'POST',
+                'callback' => array($this, 'validate_license_key'),
+                'permission_callback' => array($this, 'check_admin_permission'),
+            ));
 
-        register_rest_route('wpe/v1', '/force-remove-license', array(
-            'methods' => 'POST',
-            'callback' => array($this, 'force_remove_license_key'),
-            'permission_callback' => array($this, 'check_admin_permission'),
-        ));
+            register_rest_route($namespace, '/deactivate-license', array(
+                'methods' => 'POST',
+                'callback' => array($this, 'deactivate_license_key'),
+                'permission_callback' => array($this, 'check_admin_permission'),
+            ));
 
-        register_rest_route('wpe/v1', '/get-licenses', array(
-            'methods' => 'GET',
-            'callback' => array($this, 'get_missing_licenses'),
-            'permission_callback' => array($this, 'check_admin_permission'),
-        ));
+            register_rest_route($namespace, '/force-remove-license', array(
+                'methods' => 'POST',
+                'callback' => array($this, 'force_remove_license_key'),
+                'permission_callback' => array($this, 'check_admin_permission'),
+            ));
+
+            register_rest_route($namespace, '/get-licenses', array(
+                'methods' => 'GET',
+                'callback' => array($this, 'get_missing_licenses'),
+                'permission_callback' => array($this, 'check_admin_permission'),
+            ));
+        }
     }
 
     /**

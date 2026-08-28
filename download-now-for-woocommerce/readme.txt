@@ -3,9 +3,9 @@ Contributors: wpenhanced, squareonemedia
 Author URI: https://wpenhanced.com
 Plugin URL: https://wordpress.org/plugins/download-now-for-woocommerce/
 Requires at Least: 4.4
-Tested up to: 6.9
+Tested up to: 7.1
 Requires PHP: 7.4.0
-Stable tag: 3.6.5
+Stable tag: 3.6.6
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Tags: woocommerce, downloads, downloadable, free downloads, No Checkout
@@ -155,6 +155,10 @@ Below is a list of explicitly supported plugins:
 12. Download tracking period report displaying and exporting (Pro Edition)
 
 == Changelog ==
+
+= 3.6.6 - 28/08/26 =
+[MOD] Updated WordPress compatibility information for version 7.1
+[MOD] The free edition no longer displays the License tab
 
 = 3.6.5 - 18/05/26 =
 [NEW] (Pro Edition) Download log: select multiple entries and delete them from the Actions menu

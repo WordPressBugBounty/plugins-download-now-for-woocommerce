@@ -39,6 +39,9 @@ $common_endpoints_path = dirname( __DIR__, 2 ) . '/common/rest-endpoints/';
 if ( file_exists( $common_endpoints_path . 'class-error-logs-endpoint.php' ) ) {
 	require_once $common_endpoints_path . 'class-error-logs-endpoint.php';
 }
+if ( file_exists( $common_endpoints_path . 'class-upload-endpoint.php' ) ) {
+	require_once $common_endpoints_path . 'class-upload-endpoint.php';
+}
 
 /**
  * Plugin Registry for Settings Framework
@@ -155,6 +158,9 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
             add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 15 );
             
             add_action( 'admin_head', array( $this, 'admin_head_style' ) );
+
+            add_action( 'wp_ajax_de_settings_get_post_list', array( $this, 'ajax_get_post_list' ) );
+
             register_activation_hook( __FILE__, array( $this, 'on_plugin_activation' ) );
         }
         
@@ -422,13 +428,8 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
         public function admin_head_style() {
             $dashboard_url = admin_url( 'admin.php?page=divi-engine#dashboard' );
             echo '<style>
-                .toplevel_page_divi-engine img {
-                    max-width: 16px;
-                    width: 100%;
-                    left: 9px;
-                    position: absolute;
-                }
-                #adminmenu .toplevel_page_divi-engine .wp-menu-image img {
+                #adminmenu #toplevel_page_divi-engine .wp-menu-image img {
+                    max-width: 20px;
                     width: 20px;
                     padding: 0 !important;
                     position: absolute;
@@ -511,20 +512,85 @@ if ( ! class_exists( 'Divi_Engine_Settings' ) ) {
             );
             
             // Pass registered plugins and organization info
-            $typesense_configs = apply_filters( 'de_typesense_configs', array() );
-            $plugins_data      = ! empty( $de_registered_settings_plugins ) 
-                ? array_values( $de_registered_settings_plugins ) 
+            $typesense_configs  = apply_filters( 'de_typesense_configs', array() );
+            $sibling_hub_routes = apply_filters( 'de_sibling_hub_hash_routes', array() );
+            $plugins_data       = ! empty( $de_registered_settings_plugins )
+                ? array_values( $de_registered_settings_plugins )
                 : array();
-            
+
             wp_add_inline_script(
                 'de-settings-core',
                 'window.diviEngineSettingsObject = window.diviEngineSettingsObject || {};'
                 . 'window.diviEngineSettingsObject.organization = "divi-engine";'
                 . 'window.diviEngineSettingsObject.frameworkVersion = ' . wp_json_encode( $this->framework_version ) . ';'
                 . 'window.diviEngineSettingsObject.registeredPlugins = ' . wp_json_encode( $plugins_data ) . ';'
+                . 'window.diviEngineSettingsObject.siblingHubRoutes = ' . wp_json_encode( $sibling_hub_routes ) . ';'
                 . 'window.diviEngineSettingsObject.typesenseConfigs = ' . wp_json_encode( $typesense_configs ) . ';',
                 'before'
             );
+
+            $post_list_fallback = array(
+                'url'    => admin_url( 'admin-ajax.php' ),
+                'action' => 'de_settings_get_post_list',
+                'nonce'  => wp_create_nonce( 'de_settings_post_list' ),
+            );
+            wp_add_inline_script(
+                'de-settings-core',
+                'window.deSettingsPostListFallback = ' . wp_json_encode( $post_list_fallback ) . ';',
+                'before'
+            );
+        }
+
+        /**
+         * AJAX handler: return pages or posts list for post-type-select dropdowns.
+         * Used by all plugins using the settings framework; one request per postType shared across fields.
+         */
+        public function ajax_get_post_list() {
+            check_ajax_referer( 'de_settings_post_list', 'nonce' );
+            if ( ! current_user_can( 'manage_options' ) ) {
+                wp_send_json_error( array( 'message' => __( 'Forbidden.', 'download-now-for-woocommerce' ) ), 403 );
+            }
+
+            $post_type = isset( $_GET['post_type'] ) ? sanitize_text_field( wp_unslash( $_GET['post_type'] ) ) : 'pages';
+            if ( $post_type === 'pages' ) {
+                $post_type = 'page';
+            } elseif ( $post_type === 'posts' ) {
+                $post_type = 'post';
+            } else {
+                $post_type = sanitize_key( $post_type );
+            }
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized
+            $page     = isset( $_GET['page'] ) ? absint( wp_unslash( $_GET['page'] ) ) : 1;
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended, ET.Sniffs.ValidatedSanitizedInput.InputNotSanitized
+            $per_page = isset( $_GET['per_page'] ) ? min( 100, max( 1, absint( wp_unslash( $_GET['per_page'] ) ) ) ) : 100;
+
+            $query = new WP_Query(
+                array(
+                    'post_type'      => $post_type,
+                    'post_status'    => 'publish',
+                    'posts_per_page' => $per_page,
+                    'paged'          => $page,
+                    'orderby'        => 'title',
+                    'order'          => 'ASC',
+                    'no_found_rows'  => false,
+                )
+            );
+
+            $total       = (int) $query->found_posts;
+            $total_pages = (int) $query->max_num_pages;
+            $items       = array();
+            foreach ( $query->posts as $post_obj ) {
+                $items[] = array(
+                    'id'    => $post_obj->ID,
+                    'title' => array(
+                        'rendered' => $post_obj->post_title,
+                    ),
+                );
+            }
+
+            header( 'X-WP-Total: ' . $total );
+            header( 'X-WP-TotalPages: ' . $total_pages );
+            wp_send_json_success( $items );
         }
         
         /**

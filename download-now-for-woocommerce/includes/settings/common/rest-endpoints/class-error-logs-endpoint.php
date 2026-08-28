@@ -226,7 +226,7 @@ if ( ! function_exists( 'de_register_error_logs_routes' ) ) {
 	if ( empty( $log_timezone_string ) ) {
 		$log_timezone = ']';
 	} else {
-		$log_timezone = ' ' . esc_html( $log_timezone_string ) . ']';
+		$log_timezone = ' ' . ( function_exists( 'debc_esc_html' ) ? debc_esc_html( $log_timezone_string ) : esc_html( (string) $log_timezone_string ) ) . ']';
 	}
 
 	$new_entry = $log_time . $log_timezone . ' [TEST] ' . sanitize_text_field( $message );

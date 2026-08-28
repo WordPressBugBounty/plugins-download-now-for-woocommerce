@@ -145,6 +145,9 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
 			if ( file_exists( $common_endpoints_path . 'class-error-logs-endpoint.php' ) ) {
 				require_once $common_endpoints_path . 'class-error-logs-endpoint.php';
 			}
+			if ( file_exists( $common_endpoints_path . 'class-upload-endpoint.php' ) ) {
+				require_once $common_endpoints_path . 'class-upload-endpoint.php';
+			}
 		}
         
         /**
@@ -306,6 +309,8 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
             );
             
             // Pass WP data to the script
+            $license_available = file_exists( plugin_dir_path( __FILE__ ) . 'rest-endpoints/class-license-rest-endpoint.php' );
+            $show_license      = (bool) apply_filters( 'wp_enhanced_settings_show_license', $license_available );
             wp_localize_script(
                 'wpe-settings-core',
                 'diviEngineApiSettings',
@@ -315,6 +320,7 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
                     'hasWoo'           => class_exists( 'WooCommerce' ),
                     'settingsUrl'      => trailingslashit( plugins_url( '', $this->plugin_url_anchor ) ),
                     'frameworkVersion' => $this->framework_version,
+                    'showLicense'      => $show_license,
                 )
             );
             
@@ -328,6 +334,8 @@ if ( ! class_exists( 'WP_Enhanced_Settings' ) ) {
                 'wpe-settings-core',
                 'window.diviEngineSettingsObject = window.diviEngineSettingsObject || {};'
                 . 'window.diviEngineSettingsObject.organization = "wp-enhanced";'
+                // wp_localize_script() casts booleans to '1' / '', so the flag is repeated here as real JSON.
+                . 'window.diviEngineSettingsObject.showLicense = ' . wp_json_encode( $show_license ) . ';'
                 . 'window.diviEngineSettingsObject.frameworkVersion = ' . wp_json_encode( $this->framework_version ) . ';'
                 . 'window.diviEngineSettingsObject.registeredPlugins = ' . wp_json_encode( $plugins_data ) . ';'
                 . 'window.diviEngineSettingsObject.typesenseConfigs = ' . wp_json_encode( $typesense_configs ) . ';',

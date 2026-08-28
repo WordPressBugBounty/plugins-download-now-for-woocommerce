@@ -157,29 +157,33 @@ class DiviEngine_License_REST_Endpoints {
     /**
      * Clear the license key locally without contacting the license server.
      *
-     * @param WP_REST_Request $request Request with JSON body { "plugin": "divi-machine" } (settings plugin slug).
+     * @param WP_REST_Request $request Request with JSON body { "plugin": "divi-machine", "plugin_id": "DE_DMACH" }.
      * @return WP_REST_Response
      */
     public function force_remove_license_key($request) {
         $params      = $request->get_json_params();
         $plugin_slug = isset($params['plugin']) ? sanitize_key((string) $params['plugin']) : '';
+        $plugin_id   = isset($params['plugin_id']) ? sanitize_text_field((string) $params['plugin_id']) : '';
 
-        if ($plugin_slug === '') {
+        $plugin_ids = apply_filters('divi_engine_plugin_ids', array());
+
+        if ($plugin_slug !== '') {
+            $plugin_id = isset($plugin_ids[ $plugin_slug ]) ? (string) $plugin_ids[ $plugin_slug ] : '';
+
+            // Embedded Ajax Filter often registers the API prefix under "daf" only.
+            if ($plugin_id === '' && 'divi-ajax-filter' === $plugin_slug) {
+                $plugin_id = isset($plugin_ids['daf']) ? (string) $plugin_ids['daf'] : '';
+            }
+        }
+
+        if ($plugin_id === '') {
             return rest_ensure_response(array(
                 'success' => false,
                 'message' => __('Plugin identifier is missing.', 'download-now-for-woocommerce'),
             ));
         }
 
-        $plugin_ids = apply_filters('divi_engine_plugin_ids', array());
-        $plugin_id  = isset($plugin_ids[ $plugin_slug ]) ? (string) $plugin_ids[ $plugin_slug ] : '';
-
-        // Embedded Ajax Filter often registers the API prefix under "daf" only.
-        if ($plugin_id === '' && 'divi-ajax-filter' === $plugin_slug) {
-            $plugin_id = isset($plugin_ids['daf']) ? (string) $plugin_ids['daf'] : '';
-        }
-
-        if ($plugin_id === '' || ! defined($plugin_id . '_PRODUCT_ID')) {
+        if (! defined($plugin_id . '_PRODUCT_ID')) {
             return rest_ensure_response(array(
                 'success' => false,
                 'message' => __('Unknown plugin for license removal.', 'download-now-for-woocommerce'),

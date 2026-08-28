@@ -41,7 +41,15 @@ function de_update_plugin_settings(WP_REST_Request $req) {
   $opt    = de_option_name_for($plugin);
   if (!$opt) return new WP_Error('invalid_plugin', 'Unknown plugin', ['status' => 400]);
 
-  $payload = (array) $req->get_json_params();
+  $payload = $req->get_json_params();
+  if ( ! is_array( $payload ) || ! $payload ) {
+    $payload = $req->get_body_params();
+  }
+  $payload = is_array( $payload ) ? $payload : array();
+  if ( isset( $payload['settings'] ) && is_array( $payload['settings'] ) ) {
+    $payload = array_merge( $payload['settings'], $payload );
+    unset( $payload['settings'] );
+  }
   $clean   = de_sanitize_settings($plugin, $payload);
 
   // merge with existing so you support partial updates if you want

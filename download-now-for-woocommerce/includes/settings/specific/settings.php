@@ -36,6 +36,17 @@ if (defined('SOMDN_PRO_VERSION')) {
 // SETTINGS FRAMEWORK PLUGIN REGISTRATION
 // =============================================================================
 
+add_filter( 'wp_enhanced_settings_show_license', 'somdn_show_settings_license' );
+
+/**
+ * Hide the shared License tab unless a WP Enhanced Pro plugin needs it.
+ */
+function somdn_show_settings_license() {
+    $licensed_plugins = apply_filters( 'wp_enhanced_plugins', array() );
+
+    return class_exists( 'WPEnhanced_License_REST_Endpoints' ) && ! empty( $licensed_plugins );
+}
+
 add_action('wpe_settings_register_plugin', 'somdn_register_settings_plugin');
 
 function somdn_register_settings_plugin($registry) {
